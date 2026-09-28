@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JobStar — Universal ATS CV Engine</title>
+  <title>JobStar — Universal AI CV Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -31,7 +31,7 @@
       font-size: 10pt;
     }
     .cv-header-title {
-      font-size: 18pt;
+      font-size: 17pt;
       font-weight: bold;
       color: #0f172a;
       text-transform: uppercase;
@@ -47,14 +47,15 @@
       margin-bottom: 12px;
     }
     .cv-section-title {
-      font-size: 11pt;
+      font-size: 10.5pt;
       font-weight: bold;
       text-transform: uppercase;
       border-bottom: 1px solid #e2e8f0;
       padding-bottom: 2px;
-      margin-top: 14px;
+      margin-top: 13px;
       margin-bottom: 6px;
       letter-spacing: 0.5px;
+      color: #1e3a8a;
     }
     .cv-entry-row {
       display: flex;
@@ -76,6 +77,7 @@
     .cv-entry-sub .highlight {
       font-style: normal;
       font-weight: bold;
+      color: #1e3a8a;
     }
     .cv-bullet {
       position: relative;
@@ -103,17 +105,20 @@
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col">
 
-  <!-- Header -->
+  <!-- Navigation Bar -->
   <header class="no-print bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-md">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-extrabold text-white text-xl shadow">★</div>
         <div>
           <span class="text-xl font-bold tracking-tight text-white">Job<span class="text-blue-500">Star</span></span>
-          <span class="text-xs bg-slate-800 text-blue-400 font-semibold px-2 py-0.5 rounded-full ml-2 border border-slate-700">v4.0 Stream Parser</span>
+          <span class="text-xs bg-slate-800 text-blue-400 font-semibold px-2 py-0.5 rounded-full ml-2 border border-slate-700">AI CV Engine</span>
         </div>
       </div>
       <div class="flex items-center space-x-3">
+        <button onclick="openApiModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs text-slate-300 font-medium transition flex items-center gap-1">
+          <span>⚙️ AI API Key</span>
+        </button>
         <button onclick="window.print()" class="px-3.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm font-medium transition flex items-center gap-1.5">
           <span>Print / PDF</span>
         </button>
@@ -124,29 +129,18 @@
     </div>
   </header>
 
-  <!-- Workspace Grid -->
+  <!-- Main Workspace -->
   <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 w-full">
 
-    <!-- Controls Panel (Left, 5 cols) -->
+    <!-- Control Side (Left) -->
     <section class="no-print lg:col-span-5 space-y-4">
-      
-      <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
-        <button id="tab-draft-btn" onclick="switchMode('draft')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 transition">
-          Auto-Ingestion
-        </button>
-        <button id="tab-form-btn" onclick="switchMode('form')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition">
-          Modular Builder
-        </button>
-      </div>
-
-      <!-- Ingestion Pane -->
-      <div id="draft-pane" class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
         <div>
           <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
-            <span>Automated Stream Parser</span>
-            <span id="domain-badge" class="text-[10px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded uppercase">Universal Parser</span>
+            <span>Universal Document Ingestion</span>
+            <span id="ai-status-badge" class="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded uppercase">Dual Engine</span>
           </h2>
-          <p class="text-xs text-slate-500 mt-1">Automatically resolves glued sections, spaced letters, and run-on multi-column streams into a clean ATS CV.</p>
+          <p class="text-xs text-slate-500 mt-1">Upload any unformatted CV (.pdf, .docx, .txt). The engine decodes, sanitizes, and structures information into the standard 11-section format.</p>
         </div>
 
         <div class="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center hover:bg-slate-50 transition cursor-pointer relative" id="drop-zone">
@@ -157,52 +151,27 @@
             <span class="text-[11px] text-slate-400 mt-0.5">Click or drag and drop</span>
           </div>
         </div>
-        
-        <textarea id="raw-draft-input" rows="12" placeholder="Document text will populate here..." class="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"></textarea>
+
+        <textarea id="raw-draft-input" rows="11" placeholder="Extracted text will appear here..." class="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"></textarea>
 
         <div class="flex gap-2">
-          <button onclick="processCleanDraft()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow transition">
-            Transform with JobStar
+          <button id="transform-btn" onclick="executeSmartParser()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow transition flex items-center justify-center gap-2">
+            <span>⚡ Parse & Build CV</span>
           </button>
-          <button onclick="resetCvState(); renderPreview();" class="px-3 py-2.5 border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium whitespace-nowrap">
-            Clear All
+          <button onclick="resetCvData(); renderPreview();" class="px-3 py-2.5 border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium whitespace-nowrap">
+            Clear
           </button>
         </div>
 
-        <div id="algo-log" class="hidden bg-slate-900 rounded-lg p-3 text-[11px] font-mono text-slate-300 space-y-1">
-          <div class="text-blue-400 font-bold border-b border-slate-800 pb-1">⚡ Parser Execution Log:</div>
+        <div id="parse-log" class="hidden bg-slate-900 rounded-lg p-3 text-[11px] font-mono text-slate-300 space-y-1">
+          <div class="text-blue-400 font-bold border-b border-slate-800 pb-1">Parser Status:</div>
           <div id="log-status" class="text-emerald-400"></div>
-          <div id="log-counts" class="text-blue-300"></div>
-        </div>
-      </div>
-
-      <!-- Form Pane -->
-      <div id="form-pane" class="hidden bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4 max-h-[80vh] overflow-y-auto">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Modular Form Inputs</h2>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
-            <input type="text" id="form-name" oninput="syncForm()" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Contact Line</label>
-            <input type="text" id="form-contact" oninput="syncForm()" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
-          </div>
-        </div>
-        <hr class="border-slate-200">
-        <div>
-          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Extracurricular Activity & Outreaches</h3>
-          <textarea id="form-extracurricular" oninput="syncForm()" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
-        </div>
-        <hr class="border-slate-200">
-        <div>
-          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Technical Skills & Competencies</h3>
-          <textarea id="form-skills" oninput="syncForm()" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+          <div id="log-details" class="text-slate-400"></div>
         </div>
       </div>
     </section>
 
-    <!-- Preview Panel (Right, 7 cols) -->
+    <!-- Preview Side (Right) -->
     <section class="lg:col-span-7">
       <div class="sticky top-20 overflow-x-auto pb-12">
         <div id="resume-preview" class="cv-canvas">
@@ -210,498 +179,475 @@
         </div>
       </div>
     </section>
-
   </main>
 
+  <!-- API Key Modal -->
+  <div id="api-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+      <h3 class="text-base font-bold text-slate-900 mb-1">Gemini AI Semantic Engine</h3>
+      <p class="text-xs text-slate-500 mb-4">Adding a free Google Gemini API key enables full semantic parsing for difficult, unstructured, or glued-together layouts.</p>
+      
+      <input type="password" id="gemini-api-key-input" placeholder="AIzaSy..." class="w-full text-xs font-mono p-2.5 border border-slate-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      
+      <div class="flex justify-between items-center text-xs">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline">Get a free key →</a>
+        <div class="flex gap-2">
+          <button onclick="closeApiModal()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600">Cancel</button>
+          <button onclick="saveApiKey()" class="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-medium">Save Key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    function createCleanState() {
+    // 11 Canonical CV Sections Schema
+    function getBlankCvState() {
       return {
         name: "",
+        address: "",
         contact: "",
-        summary: "",
         education: [],
         experience: [],
         leadership: [],
         certifications: [],
         research: [],
         extracurricular: [],
-        skills: { technical: "", tools: "", languages: "" },
-        references: [],
-        domain: "GENERAL",
-        accentColor: "#1e3a8a"
+        skills_interests: { skills: "", interests: "" },
+        references: []
       };
     }
 
-    let cvData = createCleanState();
+    let cvData = getBlankCvState();
 
-    function resetCvState() {
-      cvData = createCleanState();
+    function resetCvData() {
+      cvData = getBlankCvState();
       document.getElementById('raw-draft-input').value = "";
-      document.getElementById('algo-log').classList.add('hidden');
-      populateForm();
+      document.getElementById('parse-log').classList.add('hidden');
     }
 
-    // 1. Unspace Spaced Lettering (e.g. "D A N I E L   F A D I O R A" -> "DANIEL FADIORA")
-    function normalizeSpacedLetters(text) {
-      let cleaned = text.replace(/(?:[A-Za-z\-]\s+){2,}[A-Za-z\-]/g, match => {
-        let parts = match.trim().split(/\s{2,}|\n/);
-        return parts.map(p => p.replace(/\s+/g, '')).join(' ');
+    // Modal & API Management
+    function openApiModal() {
+      document.getElementById('gemini-api-key-input').value = localStorage.getItem('JOBSTAR_GEMINI_KEY') || '';
+      document.getElementById('api-modal').classList.remove('hidden');
+    }
+    function closeApiModal() {
+      document.getElementById('api-modal').classList.add('hidden');
+    }
+    function saveApiKey() {
+      const key = document.getElementById('gemini-api-key-input').value.trim();
+      if (key) {
+        localStorage.setItem('JOBSTAR_GEMINI_KEY', key);
+      } else {
+        localStorage.removeItem('JOBSTAR_GEMINI_KEY');
+      }
+      updateAiBadge();
+      closeApiModal();
+    }
+    function updateAiBadge() {
+      const badge = document.getElementById('ai-status-badge');
+      if (localStorage.getItem('JOBSTAR_GEMINI_KEY')) {
+        badge.innerText = "Gemini AI Active";
+        badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded uppercase";
+      } else {
+        badge.innerText = "Local Engine";
+        badge.className = "text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded uppercase";
+      }
+    }
+
+    // Main Parse Execution Router
+    async function executeSmartParser() {
+      const rawText = document.getElementById('raw-draft-input').value.trim();
+      if (!rawText) return;
+
+      const apiKey = localStorage.getItem('JOBSTAR_GEMINI_KEY');
+      const btn = document.getElementById('transform-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳ Processing...</span>`;
+
+      if (apiKey) {
+        try {
+          await parseWithGemini(rawText, apiKey);
+        } catch (err) {
+          console.warn("Gemini parse failed, reverting to local parser:", err);
+          parseWithDeterministicEngine(rawText);
+        }
+      } else {
+        parseWithDeterministicEngine(rawText);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `<span>⚡ Parse & Build CV</span>`;
+      renderPreview();
+    }
+
+    // AI Semantic Engine (Gemini 2.5 Flash API)
+    async function parseWithGemini(text, key) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+      const systemPrompt = `You are JobStar's CV Engineering Parser. Your goal is to ingest unformatted, glued, or multi-column raw CV text and decode it into a clean, canonical JSON object[cite: 1, 2].
+Rules:
+1. Strip all secondary/high-school entries (WAEC, SSCE, NECO, Vale, Valencia College, Floret Infant School).
+2. Clean spaced-out kerning (e.g., 'D A N I E L   F A D I O R A' -> 'DANIEL FADIORA', 'L E A D E R S H I P' -> 'LEADERSHIP').
+3. Shunt volunteer medical outreaches, blood drives, walks, and NGO volunteering out of professional experience and into 'extracurricular'[cite: 2].
+4. Arrange the output strictly into this JSON structure:
+{
+  "name": "FULL CANDIDATE NAME",
+  "address": "Location/State/City only",
+  "contact": "Phone | Email | LinkedIn",
+  "education": [{"institution": "...", "degree": "...", "period": "...", "honor": "..."}],
+  "experience": [{"company": "...", "title": "...", "period": "...", "location": "...", "bullets": ["..."]}],
+  "leadership": [{"company": "...", "title": "...", "period": "...", "location": "...", "bullets": ["..."]}],
+  "certifications": ["..."],
+  "research": ["..."],
+  "extracurricular": ["..."],
+  "skills_interests": {"skills": "...", "interests": "..."},
+  "references": ["..."]
+}
+5. OMIT ANY SECTION that has no corresponding data in the text (return an empty array or empty string). Never output placeholder text. Return raw JSON only.`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${systemPrompt}\n\nCandidate Raw CV Text:\n${text}` }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
       });
-      cleaned = cleaned.replace(/EXTRA\s*-\s*CURRICULAR/gi, 'EXTRACURRICULAR');
-      cleaned = cleaned.replace(/LEADERS\s+HIP/gi, 'LEADERSHIP');
-      return cleaned;
+
+      const resData = await response.json();
+      const content = resData.candidates[0].content.parts[0].text;
+      const parsed = JSON.parse(content);
+
+      cvData = getBlankCvState();
+      Object.assign(cvData, parsed);
+
+      document.getElementById('parse-log').classList.remove('hidden');
+      document.getElementById('log-status').innerText = `✔ AI Semantic Parse Complete for: ${cvData.name}`;
+      document.getElementById('log-details').innerText = `Sections Populated: Education (${cvData.education.length}), Experience (${cvData.experience.length}), Leadership (${cvData.leadership.length}), Outreaches (${cvData.extracurricular.length})`;
     }
 
-    // 2. Insert Delimiters Before Glued Section Headers
-    function segmentGluedSections(text) {
-      const headers = [
-        "PERSONAL DATA", "WORKING STATUS", "EDUCATIONAL HISTORY", "ACADEMIC QUALIFICATIONS", "EDUCATION",
-        "PROFESSIONAL EXPERIENCE", "EMPLOYMENT HISTORY", "WORK EXPERIENCE", "EXPERIENCE",
-        "LEADERSHIP EXPERIENCE", "LEADERSHIP",
-        "EXTRACURRICULAR ACTIVITIES", "EXTRACURRICULAR ACTIVITY", "EXTRACURRICULAR", "EXTRA-CURRICULAR",
-        "CERTIFICATIONS & ACCREDITATIONS", "CERTIFICATIONS", "CERTIFICATES",
-        "CONVENTIONS / SUMMITS ATTENDED", "CONVENTIONS / SUMMITS", "CONVENTIONS",
-        "RESEARCH & PUBLICATIONS", "PUBLICATIONS", "RESEARCH", "CONTRIBUTION TO RESEARCH", "PROJECTS",
-        "TECHNICAL SKILLS & COMPETENCIES", "SKILLS & INTERESTS", "SKILLS", "TECHNICAL SKILLS", "NON-TECHNICAL SKILLS",
-        "AREAS OF SPECIALISATION", "MEMBER OF LEARNED SOCIETIES", "LANGUAGES", "HOBBIES",
-        "REFEREES", "REFERENCES", "PROFILE", "PROFESSIONAL SUMMARY", "OBJECTIVE", "DETAILS"
-      ];
-      headers.sort((a, b) => b.length - a.length);
+    // Deterministic Fallback Engine
+    function parseWithDeterministicEngine(rawText) {
+      cvData = getBlankCvState();
 
-      let pattern = new RegExp('(' + headers.map(h => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?=[^a-z]|$)', 'gi');
-      return text.replace(pattern, (m, g1) => `\n\n===SECTION:${g1.toUpperCase()}===\n`);
-    }
+      // Step A: De-kern spaced letters (e.g., 'D A N I E L' -> 'DANIEL')[cite: 2]
+      let text = rawText.replace(/\b(?:[A-Za-z\-]\s+){2,}[A-Za-z\-]\b/g, match => {
+        let words = match.trim().split(/\s{2,}|\n/);
+        return words.map(w => w.replace(/\s+/g, '')).join(' ');
+      });
+      text = text.replace(/EXTRA\s*-\s*CURRICULAR/gi, 'EXTRACURRICULAR');
+      text = text.replace(/LEADERS\s+HIP/gi, 'LEADERSHIP');
 
-    // Date Pattern for Boundary Detection
-    const DATE_REGEX = /(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*)?(?:19|20)\d{2}\s*(?:–|-|—|till|present|to)\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*)?(?:(?:19|20)\d{2}|present|till date|in view|current)/i;
-
-    // 3. Decompose Continuous Section Streams Using Dates & Bullets
-    function decomposeSectionStream(lines) {
-      let rawText = lines.join(' ');
-      // Split on bullet points or date boundaries
-      let tokens = [];
-      let temp = rawText;
-
-      // Extract items by scanning for dates
-      let match;
-      let lastIndex = 0;
-      let items = [];
+      // Step B: Extract Candidate Name
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const bannedWords = ["SKILLS", "TECHNICAL", "EXPERIENCE", "EDUCATION", "CURRICULUM", "VITAE", "RESUME", "PROFILE", "DETAILS", "ADDRESS", "PHONE", "EMAIL", "PAGE"];
       
-      // Split lines cleanly if they were already formatted
-      if (lines.length > 2 && lines.some(l => DATE_REGEX.test(l))) {
-        let currentItem = [];
-        lines.forEach(l => {
-          let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
-          if (!clean || clean === '|') return;
-          if (DATE_REGEX.test(clean) && currentItem.length > 0) {
-            items.push(currentItem);
-            currentItem = [clean];
-          } else {
-            currentItem.push(clean);
+      for (let i = 0; i < Math.min(lines.length, 10); i++) {
+        let line = lines[i].replace(/^(?:[A-Z0-9\.\-iIvVxX]+\.?\s+)?(?:Name\s*:?\s*)/i, '').trim();
+        line = line.split(/[,\|;]|\b(?:LAGOS|IBADAN|ABUJA|OSUN|OGUN|NIGERIA|EMAIL|PHONE|DETAILS|ADDRESS)\b/i)[0].trim();
+        let words = line.split(/\s+/).filter(w => w.length > 0);
+        if (words.length >= 2 && words.length <= 4 && !words.some(w => bannedWords.includes(w.toUpperCase()))) {
+          if (words.every(w => /^[A-Za-z\.\'\-]+$/.test(w))) {
+            cvData.name = words.join(' ').toUpperCase();
+            break;
           }
+        }
+      }
+      if (!cvData.name) cvData.name = "CANDIDATE FULL NAME";
+
+      // Step C: Extract Contact Information
+      const emails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+      const phones = text.match(/(?:\+?234|0)[789][01]\d{8}/g) || [];
+      const locMatch = text.match(/([A-Za-z\s]+(?:State|Lagos|Ibadan|Abuja|Osogbo|Oyo|Ogun|Ghana|Kumasi))/i);
+      
+      cvData.address = locMatch ? locMatch[1].trim() : "";
+      let contactParts = [];
+      if (phones.length) contactParts.push(phones[0]);
+      if (emails.length) contactParts.push(emails[0]);
+      cvData.contact = contactParts.join('  |  ');
+
+      // Step D: Segment Sections
+      const SECTION_HEADERS = [
+        { key: "LEADERSHIP", list: ["LEADERSHIP EXPERIENCE", "LEADERSHIP"] },
+        { key: "EXPERIENCE", list: ["PROFESSIONAL EXPERIENCE", "EMPLOYMENT HISTORY", "WORK EXPERIENCE", "WORKING STATUS", "EXPERIENCE"] },
+        { key: "EDUCATION", list: ["ACADEMIC QUALIFICATIONS", "EDUCATIONAL HISTORY", "INSTITUTIONS ATTENDED", "EDUCATION"] },
+        { key: "EXTRACURRICULAR", list: ["EXTRACURRICULAR ACTIVITIES", "EXTRACURRICULAR ACTIVITY", "EXTRACURRICULAR", "COMMUNITY SERVICE"] },
+        { key: "RESEARCH", list: ["RESEARCH & PUBLICATIONS", "PUBLICATIONS", "CONTRIBUTION TO RESEARCH", "RESEARCH"] },
+        { key: "CERTIFICATIONS", list: ["CERTIFICATIONS & ACCREDITATIONS", "CERTIFICATES", "CERTIFICATIONS"] },
+        { key: "SKILLS", list: ["TECHNICAL SKILLS & COMPETENCIES", "SKILLS & INTERESTS", "TECHNICAL SKILLS", "NON-TECHNICAL SKILLS", "SKILLS", "AREAS OF SPECIALISATION"] },
+        { key: "REFERENCES", list: ["REFEREES", "REFERENCES"] }
+      ];
+
+      // Insert section boundaries
+      SECTION_HEADERS.forEach(grp => {
+        grp.list.forEach(hdr => {
+          let re = new RegExp(`(^|\\n|[\\.;•\\*\\-\\|]\\s*|\\s{2,})(?:(?:[A-Z0-9\\.\\-]+\\.?|[iIvVxX]+\\.?)\\s+)?(${hdr})(?=\\s*[:\\-\\n•\\*\\)]|\\s{2,}|\\s+[A-Z0-9]|$)`, 'gi');
+          text = text.replace(re, `\n\n===SEC:${grp.key}===\n`);
         });
-        if (currentItem.length > 0) items.push(currentItem);
-        return items;
-      }
+      });
 
-      // If text is a single giant flattened stream:
-      let bulletParts = rawText.split(/[•\*\-]\s+/).filter(p => p.trim().length > 0);
-      if (bulletParts.length > 1) {
-        return bulletParts.map(bp => [bp.trim()]);
-      }
+      let buckets = {};
+      let activeSec = "HEADER";
+      buckets[activeSec] = [];
 
-      return lines.map(l => [l.trim()]);
-    }
-
-    // Master Parser
-    function processCleanDraft() {
-      const rawInput = document.getElementById('raw-draft-input').value;
-      if (!rawInput.trim()) return;
-
-      cvData = createCleanState();
-
-      // Normalize kerning and segment glued headers
-      let normalized = segmentGluedSections(normalizeSpacedLetters(rawInput));
-
-      // Separate into Section Buckets
-      let sectionBuckets = {};
-      let currentSec = "HEADER";
-      sectionBuckets[currentSec] = [];
-
-      normalized.split('\n').forEach(line => {
-        let trimmed = line.trim();
+      text.split('\n').forEach(l => {
+        let trimmed = l.trim();
         if (!trimmed) return;
-        if (trimmed.startsWith("===SECTION:") && trimmed.endsWith("===")) {
-          currentSec = trimmed.replace("===SECTION:", "").replace("===", "").trim();
-          if (!sectionBuckets[currentSec]) sectionBuckets[currentSec] = [];
+        if (trimmed.startsWith("===SEC:") && trimmed.endsWith("===")) {
+          activeSec = trimmed.replace("===SEC:", "").replace("===", "").trim();
+          if (!buckets[activeSec]) buckets[activeSec] = [];
         } else {
-          sectionBuckets[currentSec].push(trimmed);
+          buckets[activeSec].push(trimmed);
         }
       });
 
-      // 1. Extract Name & Contact from HEADER
-      let headerLines = sectionBuckets["HEADER"] || [];
-      for (let i = 0; i < Math.min(headerLines.length, 8); i++) {
-        let l = headerLines[i].replace(/^(?:Name\s*:?\s*)/i, '').replace(/,/g, '').trim();
-        if (/^[a-zA-Z\s\.\-]{3,45}$/.test(l) && l.split(/\s+/).length >= 2) {
-          cvData.name = l.toUpperCase();
-          break;
-        }
-      }
-      if (!cvData.name) {
-        let firstLine = (headerLines[0] || "").split(/\s{2,}|DETAILS|PROFILE|ADDRESS/)[0].trim();
-        cvData.name = firstLine.replace(/,/g, '').toUpperCase() || "CANDIDATE FULL NAME";
-      }
+      // Parse Education (Rule 1: Prune secondary school)
+      let eduLines = buckets["EDUCATION"] || [];
+      cvData.education = parseEduItems(eduLines);
 
-      // Contact Extraction Across Whole Document
-      let allText = rawInput;
-      let emails = allText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-      let phones = allText.match(/(?:\+?234|0)[789][01]\d{8}/g) || [];
-      let locMatch = allText.match(/([A-Za-z\s]+(?:State|Lagos|Ibadan|Abuja|Osogbo|Oyo|Ogun|Ghana|Kumasi))/i);
-      let location = locMatch ? locMatch[1].trim() : "Nigeria";
+      // Parse Experience & Leadership
+      let expLines = buckets["EXPERIENCE"] || [];
+      cvData.experience = parseWorkItems(expLines);
 
-      let contactArr = [];
-      if (location) contactArr.push(location);
-      if (phones.length) contactArr.push(phones[0]);
-      if (emails.length) contactArr.push(emails[0]);
-      cvData.contact = contactArr.join('  |  ');
+      let leadLines = buckets["LEADERSHIP"] || [];
+      cvData.leadership = parseWorkItems(leadLines);
 
-      // 2. Parse EDUCATION
-      let eduLines = [
-        ...(sectionBuckets["EDUCATION"] || []),
-        ...(sectionBuckets["EDUCATIONAL HISTORY"] || []),
-        ...(sectionBuckets["ACADEMIC QUALIFICATIONS"] || [])
-      ];
-      cvData.education = parseStructuredEducation(eduLines);
-
-      // 3. Parse PROFESSIONAL EXPERIENCE
-      let expLines = [
-        ...(sectionBuckets["PROFESSIONAL EXPERIENCE"] || []),
-        ...(sectionBuckets["EMPLOYMENT HISTORY"] || []),
-        ...(sectionBuckets["WORK EXPERIENCE"] || []),
-        ...(sectionBuckets["EXPERIENCE"] || []),
-        ...(sectionBuckets["WORKING STATUS"] || [])
-      ];
-      cvData.experience = parseStructuredExperience(expLines);
-
-      // 4. Parse LEADERSHIP
-      let leadLines = [
-        ...(sectionBuckets["LEADERSHIP EXPERIENCE"] || []),
-        ...(sectionBuckets["LEADERSHIP"] || [])
-      ];
-      cvData.leadership = parseStructuredExperience(leadLines);
-
-      // 5. Parse EXTRACURRICULAR
-      let extraLines = [
-        ...(sectionBuckets["EXTRACURRICULAR ACTIVITIES"] || []),
-        ...(sectionBuckets["EXTRACURRICULAR ACTIVITY"] || []),
-        ...(sectionBuckets["EXTRACURRICULAR"] || [])
-      ];
-      extraLines.forEach(l => {
-        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
-        if (clean.length > 5) cvData.extracurricular.push(clean);
-      });
-
-      // 6. Parse CONVENTIONS & CONFERENCES
-      let convLines = [
-        ...(sectionBuckets["CONVENTIONS / SUMMITS ATTENDED"] || []),
-        ...(sectionBuckets["CONVENTIONS / SUMMITS"] || []),
-        ...(sectionBuckets["CONVENTIONS"] || [])
-      ];
-      convLines.forEach(l => {
-        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
-        if (clean.length > 8) cvData.extracurricular.push(clean);
-      });
-
-      // 7. Parse RESEARCH & PUBLICATIONS
-      let pubLines = [
-        ...(sectionBuckets["RESEARCH & PUBLICATIONS"] || []),
-        ...(sectionBuckets["PUBLICATIONS"] || []),
-        ...(sectionBuckets["RESEARCH"] || []),
-        ...(sectionBuckets["CONTRIBUTION TO RESEARCH"] || []),
-        ...(sectionBuckets["PROJECTS"] || [])
-      ];
-      pubLines.forEach(l => {
-        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
-        if (clean.length > 8) cvData.research.push(clean);
-      });
-
-      // 8. Parse CERTIFICATIONS
-      let certLines = [
-        ...(sectionBuckets["CERTIFICATIONS & ACCREDITATIONS"] || []),
-        ...(sectionBuckets["CERTIFICATIONS"] || []),
-        ...(sectionBuckets["CERTIFICATES"] || [])
-      ];
-      certLines.forEach(l => {
-        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
+      // Parse Certifications
+      (buckets["CERTIFICATIONS"] || []).forEach(c => {
+        let clean = c.replace(/^[•\-\*\|\s]+/, '').trim();
         if (clean.length > 5) cvData.certifications.push(clean);
       });
 
-      // 9. Parse SKILLS & HOBBIES
-      let skillLines = [
-        ...(sectionBuckets["TECHNICAL SKILLS & COMPETENCIES"] || []),
-        ...(sectionBuckets["SKILLS & INTERESTS"] || []),
-        ...(sectionBuckets["SKILLS"] || []),
-        ...(sectionBuckets["TECHNICAL SKILLS"] || []),
-        ...(sectionBuckets["NON-TECHNICAL SKILLS"] || []),
-        ...(sectionBuckets["LANGUAGES"] || []),
-        ...(sectionBuckets["HOBBIES"] || [])
-      ];
+      // Parse Research & Publications
+      (buckets["RESEARCH"] || []).forEach(r => {
+        let clean = r.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 5) cvData.research.push(clean);
+      });
+
+      // Parse Extracurricular
+      (buckets["EXTRACURRICULAR"] || []).forEach(e => {
+        let clean = e.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 5) cvData.extracurricular.push(clean);
+      });
+
+      // Parse Skills & Interests
+      let skillLines = buckets["SKILLS"] || [];
       if (skillLines.length > 0) {
-        cvData.skills.technical = skillLines.join(', ')
-          .replace(/SKILLS|NON-TECHNICAL SKILLS|TECHNICAL SKILLS|LANGUAGES|HOBBIES/gi, '')
+        cvData.skills_interests.skills = skillLines.join(', ')
+          .replace(/SKILLS|NON-TECHNICAL SKILLS|TECHNICAL SKILLS/gi, '')
           .replace(/\s{2,}/g, ' ')
           .replace(/^[,\s]+/, '')
           .trim();
       }
 
-      // 10. Parse REFERENCES
-      let refLines = [
-        ...(sectionBuckets["REFEREES"] || []),
-        ...(sectionBuckets["REFERENCES"] || [])
-      ];
-      cvData.references = refLines.map(r => r.replace(/^[•\-\*\|\s]+/, '').trim()).filter(r => r.length > 5);
+      // Parse References
+      (buckets["REFERENCES"] || []).forEach(rf => {
+        let clean = rf.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 5) cvData.references.push(clean);
+      });
 
-      // Automated Rule: Shunt Outreaches out of Experience into Extracurriculars
-      shuntOutreaches();
+      // Rule 3: Shunt Outreaches out of Experience into Extracurricular
+      shuntOutreachesLocal();
 
-      // Log execution
-      document.getElementById('algo-log').classList.remove('hidden');
-      document.getElementById('log-status').innerText = `✔ Parsed: ${cvData.name}`;
-      document.getElementById('log-counts').innerText = `✔ Extracted: ${cvData.education.length} Degrees | ${cvData.experience.length} Experience Entries | ${cvData.leadership.length} Leadership Roles | ${cvData.extracurricular.length} Extracurricular Activities`;
-
-      populateForm();
-      renderPreview();
+      document.getElementById('parse-log').classList.remove('hidden');
+      document.getElementById('log-status').innerText = `✔ Local Heuristic Parse Complete for: ${cvData.name}`;
+      document.getElementById('log-details').innerText = `Extracted: Education (${cvData.education.length}), Experience (${cvData.experience.length}), Leadership (${cvData.leadership.length})`;
     }
 
-    // Education Parser
-    function parseStructuredEducation(lines) {
+    const DATE_REGEX = /(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*)?(?:19|20)\d{2}\s*(?:–|-|—|till|present|to)\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*)?(?:(?:19|20)\d{2}|present|till date|in view|current)/i;
+
+    function parseEduItems(lines) {
       let items = [];
       let current = null;
-
       lines.forEach(raw => {
-        let line = raw.replace(/^[•\-\*\|\s]+/, '').trim();
-        if (!line || line === '|') return;
+        let clean = raw.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (!clean || clean === '|') return;
+        if (/secondary|high school|waec|ssce|neco|infant school|primary school/i.test(clean)) return;
 
-        // Rule: Prune Secondary Education
-        if (/secondary|high school|waec|ssce|neco|infant school|primary school/i.test(line)) {
-          return;
-        }
-
-        let dateMatch = line.match(DATE_REGEX);
+        let dateMatch = clean.match(DATE_REGEX);
         let date = dateMatch ? dateMatch[0] : "";
-        let clean = line.replace(date, '').replace(/\|/g, '').trim();
+        let lineNoDate = clean.replace(date, '').replace(/\|/g, '').trim();
 
-        let isInstitution = /university|college|institute|polytechnic|school of/i.test(clean);
-        let isDegree = /bachelor|master|b\.?sc|m\.?sc|mb;?bs|phd|diploma|certificate|associate/i.test(clean);
+        let isInst = /university|college|institute|polytechnic/i.test(lineNoDate);
+        let isDegree = /bachelor|master|b\.?sc|m\.?sc|mb;?bs|phd|diploma|certificate/i.test(lineNoDate);
 
-        if (isInstitution && !current) {
-          current = { institution: clean, period: date, degree: "", honor: "" };
-        } else if (isInstitution && current) {
-          if (current.institution && (current.degree || current.period)) {
-            items.push(current);
-            current = { institution: clean, period: date, degree: "", honor: "" };
-          } else {
-            current.institution = clean;
-            if (date) current.period = date;
-          }
+        if (isInst && !current) {
+          current = { institution: lineNoDate, degree: "", period: date, honor: "" };
+        } else if (isInst && current) {
+          items.push(current);
+          current = { institution: lineNoDate, degree: "", period: date, honor: "" };
         } else if (current) {
           if (date && !current.period) current.period = date;
-          if (isDegree && !current.degree) {
-            current.degree = clean;
-          } else if (/class|division|distinction|merit|honors|view/i.test(clean)) {
-            current.honor = clean;
-          } else if (!current.degree) {
-            current.degree = clean;
-          }
-        } else if (clean.length > 5) {
-          current = { institution: clean, period: date, degree: "Bachelor's Degree", honor: "" };
+          if (isDegree && !current.degree) current.degree = lineNoDate;
+          else if (/class|division|distinction|merit|honors|in view/i.test(lineNoDate)) current.honor = lineNoDate;
+          else if (!current.degree) current.degree = lineNoDate;
         }
       });
-
       if (current) items.push(current);
       return items;
     }
 
-    // Experience & Leadership Parser
-    function parseStructuredExperience(lines) {
+    function parseWorkItems(lines) {
       let items = [];
       let current = null;
-
       lines.forEach(raw => {
-        let line = raw.replace(/^[•\-\*\|\s]+/, '').trim();
-        if (!line || line === '|') return;
+        let clean = raw.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (!clean || clean === '|') return;
 
-        let dateMatch = line.match(DATE_REGEX);
+        let dateMatch = clean.match(DATE_REGEX);
         let date = dateMatch ? dateMatch[0] : "";
-        let clean = line.replace(date, '').replace(/\|/g, '').trim();
+        let lineNoDate = clean.replace(date, '').replace(/\|/g, '').trim();
 
-        // If line contains date or is clearly a company / title header
         if (date) {
           if (current) items.push(current);
-          
-          let parts = clean.split(/,|\sat\s|\s-\s/);
-          let roleTitle = parts[0] ? parts[0].trim() : "Professional Role";
-          let org = parts[1] ? parts.slice(1).join(', ').trim() : clean;
-
-          current = {
-            company: org || roleTitle,
-            title: org ? roleTitle : "Officer / Specialist",
-            period: date,
-            location: "",
-            bullets: []
-          };
-          return;
-        }
-
-        // Non-date line
-        if (!current) {
-          current = { company: clean, title: "Executive / Specialist", period: "", location: "", bullets: [] };
-        } else if (!current.period && line.length < 80) {
-          if (current.title === "Executive / Specialist") {
-            current.title = clean;
-          } else {
-            current.location = clean;
-          }
+          let parts = lineNoDate.split(/,|\sat\s|\s-\s/);
+          let title = parts[0] ? parts[0].trim() : "Role";
+          let org = parts[1] ? parts.slice(1).join(', ').trim() : lineNoDate;
+          current = { company: org || title, title: org ? title : "Specialist", period: date, location: "", bullets: [] };
+        } else if (!current) {
+          current = { company: lineNoDate, title: "Specialist", period: "", location: "", bullets: [] };
+        } else if (!current.period && lineNoDate.length < 80) {
+          if (current.title === "Specialist") current.title = lineNoDate;
+          else current.location = lineNoDate;
         } else {
-          current.bullets.push(clean);
+          current.bullets.push(lineNoDate);
         }
       });
-
       if (current) items.push(current);
       return items;
     }
 
-    // Outreach Shunting Rule
-    function shuntOutreaches() {
-      let remainingExp = [];
+    function shuntOutreachesLocal() {
+      let filteredExp = [];
       let outreachRegex = /outreach|volunteer|blood drive|pad drive|walk for|sensitization|charity/i;
 
       cvData.experience.forEach(exp => {
-        let expText = `${exp.company} ${exp.title} ${exp.bullets.join(' ')}`;
         if (outreachRegex.test(exp.title) || outreachRegex.test(exp.company)) {
           cvData.extracurricular.push(`${exp.title}, ${exp.company} (${exp.period || ''})`);
         } else {
           let keptBullets = [];
           exp.bullets.forEach(b => {
-            if (outreachRegex.test(b)) {
-              cvData.extracurricular.push(b);
-            } else {
-              keptBullets.push(b);
-            }
+            if (outreachRegex.test(b)) cvData.extracurricular.push(b);
+            else keptBullets.push(b);
           });
           exp.bullets = keptBullets;
-          remainingExp.push(exp);
+          filteredExp.push(exp);
         }
       });
-      cvData.experience = remainingExp;
+      cvData.experience = filteredExp;
     }
 
-    // Render Live Preview
+    // Render Preview: Strictly Omits Missing Sections
     function renderPreview() {
       const container = document.getElementById('resume-preview');
       let html = '';
 
-      // Header
-      html += `
-        <div style="text-align: center; margin-bottom: 12px;">
+      // 1. Header (Name)
+      if (cvData.name) {
+        html += `<div style="text-align: center; margin-bottom: 4px;">
           <h1 class="cv-header-title">${cvData.name}</h1>
-          <p class="cv-header-contact">${cvData.contact}</p>
-        </div>
-      `;
+        </div>`;
+      }
 
-      // Education
+      // 2–3. Contact Line
+      let fullContact = [cvData.address, cvData.contact].filter(x => x && x.trim().length > 0).join('  |  ');
+      if (fullContact) {
+        html += `<p class="cv-header-contact">${fullContact}</p>`;
+      }
+
+      // 4. Education (Omitted if empty)
       if (cvData.education && cvData.education.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Education</div>`;
+        html += `<div class="cv-section-title">Education</div>`;
         cvData.education.forEach(edu => {
           html += `
             <div style="margin-bottom: 6px;">
               <div class="cv-entry-row">
                 <span>${edu.institution}</span>
-                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${edu.period}</span>
+                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${edu.period || ''}</span>
               </div>
               <div class="cv-entry-sub">
-                <span>${edu.degree}</span>
-                <span class="highlight" style="color: ${cvData.accentColor};">${edu.honor || ''}</span>
+                <span>${edu.degree || ''}</span>
+                <span class="highlight">${edu.honor || ''}</span>
               </div>
-            </div>
-          `;
+            </div>`;
         });
       }
 
-      // Professional Experience
+      // 5. Professional Experience (Omitted if empty)
       if (cvData.experience && cvData.experience.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Professional Experience</div>`;
+        html += `<div class="cv-section-title">Professional Experience</div>`;
         cvData.experience.forEach(exp => {
           html += `
             <div style="margin-bottom: 8px;">
               <div class="cv-entry-row">
                 <span>${exp.company}</span>
-                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${exp.period}</span>
+                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${exp.period || ''}</span>
               </div>
               <div class="cv-entry-sub">
                 <span>${exp.title}</span>
                 <span style="font-style: normal; color: #475569; font-size: 9pt;">${exp.location || ''}</span>
               </div>
               ${exp.bullets.map(b => `<div class="cv-bullet">${b}</div>`).join('')}
-            </div>
-          `;
+            </div>`;
         });
       }
 
-      // Leadership Experience
+      // 6. Leadership Experience (Omitted if empty)
       if (cvData.leadership && cvData.leadership.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Leadership Experience</div>`;
+        html += `<div class="cv-section-title">Leadership Experience</div>`;
         cvData.leadership.forEach(lead => {
           html += `
             <div style="margin-bottom: 8px;">
               <div class="cv-entry-row">
                 <span>${lead.company}</span>
-                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${lead.period}</span>
+                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${lead.period || ''}</span>
               </div>
               <div class="cv-entry-sub">
                 <span>${lead.title}</span>
                 <span style="font-style: normal; color: #475569; font-size: 9pt;">${lead.location || ''}</span>
               </div>
               ${lead.bullets.map(b => `<div class="cv-bullet">${b}</div>`).join('')}
-            </div>
-          `;
+            </div>`;
         });
       }
 
-      // Certifications
+      // 7. Certifications (Omitted if empty)
       if (cvData.certifications && cvData.certifications.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Certifications</div>`;
+        html += `<div class="cv-section-title">Certifications</div>`;
         cvData.certifications.forEach(c => {
           html += `<div class="cv-bullet">${c}</div>`;
         });
       }
 
-      // Research & Publications
+      // 8. Research & Publications (Omitted if empty)
       if (cvData.research && cvData.research.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Research & Publications</div>`;
+        html += `<div class="cv-section-title">Research & Publications</div>`;
         cvData.research.forEach(r => {
           html += `<div class="cv-bullet">${r}</div>`;
         });
       }
 
-      // Extracurricular Activity
+      // 9. Extracurricular Activity (Omitted if empty)
       if (cvData.extracurricular && cvData.extracurricular.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Extracurricular Activity</div>`;
+        html += `<div class="cv-section-title">Extracurricular Activity</div>`;
         cvData.extracurricular.forEach(ex => {
           html += `<div class="cv-bullet">${ex}</div>`;
         });
       }
 
-      // Skills
-      if (cvData.skills && cvData.skills.technical) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Technical Skills & Competencies</div>`;
-        html += `<div style="font-size: 9.5pt; margin-bottom: 4px; line-height: 1.4;">${cvData.skills.technical}</div>`;
+      // 10. Skills & Interests (Omitted if empty)
+      if (cvData.skills_interests && (cvData.skills_interests.skills || cvData.skills_interests.interests)) {
+        html += `<div class="cv-section-title">Skills & Interests</div>`;
+        if (cvData.skills_interests.skills) {
+          html += `<div style="font-size: 9.5pt; margin-bottom: 3px; line-height: 1.35;"><strong>Technical & Core Skills:</strong> ${cvData.skills_interests.skills}</div>`;
+        }
+        if (cvData.skills_interests.interests) {
+          html += `<div style="font-size: 9.5pt; margin-bottom: 3px; line-height: 1.35;"><strong>Interests:</strong> ${cvData.skills_interests.interests}</div>`;
+        }
       }
 
-      // References
+      // 11. References (Omitted if empty)
       if (cvData.references && cvData.references.length > 0) {
-        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">References</div>`;
+        html += `<div class="cv-section-title">References</div>`;
         cvData.references.forEach(rf => {
           html += `<div style="font-size: 9pt; color: #334155; margin-bottom: 3px;">${rf}</div>`;
         });
@@ -710,7 +656,7 @@
       container.innerHTML = html;
     }
 
-    // Ingestion Handlers
+    // Ingestion File Readers
     function handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -722,7 +668,7 @@
           mammoth.extractRawText({ arrayBuffer: e.target.result })
             .then(result => {
               document.getElementById('raw-draft-input').value = result.value;
-              processCleanDraft();
+              executeSmartParser();
             });
         };
         reader.readAsArrayBuffer(file);
@@ -741,7 +687,7 @@
             }
             Promise.all(countPromises).then(texts => {
               document.getElementById('raw-draft-input').value = texts.join('\n\n');
-              processCleanDraft();
+              executeSmartParser();
             });
           });
         };
@@ -749,80 +695,39 @@
       } else {
         reader.onload = function(e) {
           document.getElementById('raw-draft-input').value = e.target.result;
-          processCleanDraft();
+          executeSmartParser();
         };
         reader.readAsText(file);
       }
     }
 
-    function switchMode(mode) {
-      const draftPane = document.getElementById('draft-pane');
-      const formPane = document.getElementById('form-pane');
-      const tabDraftBtn = document.getElementById('tab-draft-btn');
-      const tabFormBtn = document.getElementById('tab-form-btn');
-
-      if (mode === 'draft') {
-        draftPane.classList.remove('hidden');
-        formPane.classList.add('hidden');
-        tabDraftBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 transition";
-        tabFormBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition";
-      } else {
-        draftPane.classList.add('hidden');
-        formPane.classList.remove('hidden');
-        populateForm();
-        tabFormBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 transition";
-        tabDraftBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition";
-      }
-    }
-
-    function populateForm() {
-      document.getElementById('form-name').value = cvData.name || '';
-      document.getElementById('form-contact').value = cvData.contact || '';
-      document.getElementById('form-extracurricular').value = (cvData.extracurricular || []).join('\n');
-      document.getElementById('form-skills').value = cvData.skills ? cvData.skills.technical : '';
-    }
-
-    function syncForm() {
-      cvData.name = document.getElementById('form-name').value;
-      cvData.contact = document.getElementById('form-contact').value;
-      cvData.extracurricular = document.getElementById('form-extracurricular').value.split('\n').filter(x => x.trim().length > 0);
-      if (!cvData.skills) cvData.skills = {};
-      cvData.skills.technical = document.getElementById('form-skills').value;
-      renderPreview();
-    }
-
-    // Native Word (.docx) Exporter
+    // Direct Native Word (.docx) Exporter
     async function exportDocx() {
       const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
-      const hexColor = cvData.accentColor.replace('#', '');
 
       const doc = new Document({
         styles: {
-          default: {
-            document: { run: { font: "Arial", size: 20, color: "1E293B" } }
-          }
+          default: { document: { run: { font: "Arial", size: 20, color: "1E293B" } } }
         },
         sections: [{
-          properties: {
-            page: { margin: { top: 864, right: 864, bottom: 864, left: 864 } }
-          },
+          properties: { page: { margin: { top: 864, right: 864, bottom: 864, left: 864 } } },
           children: [
-            new Paragraph({
+            ...(cvData.name ? [new Paragraph({
               alignment: docx.AlignmentType.CENTER,
               spacing: { after: 30 },
-              children: [new TextRun({ text: cvData.name, bold: true, size: 36, color: "0F172A" })]
-            }),
-            new Paragraph({
+              children: [new TextRun({ text: cvData.name, bold: true, size: 34, color: "0F172A" })]
+            })] : []),
+            ...(([cvData.address, cvData.contact].filter(Boolean).join('  |  ')) ? [new Paragraph({
               alignment: docx.AlignmentType.CENTER,
               spacing: { after: 180 },
-              children: [new TextRun({ text: cvData.contact, size: 19, color: "475569" })]
-            }),
+              children: [new TextRun({ text: [cvData.address, cvData.contact].filter(Boolean).join('  |  '), size: 19, color: "475569" })]
+            })] : []),
             ...buildDocxSection("Education", cvData.education.flatMap(e => [
-              createDocxRow(e.institution, e.period, true),
-              createDocxRow(e.degree, e.honor || "", false, true, hexColor)
+              createDocxRow(e.institution, e.period || "", true),
+              createDocxRow(e.degree || "", e.honor || "", false, true, "1E3A8A")
             ])),
             ...buildDocxSection("Professional Experience", cvData.experience.flatMap(exp => [
-              createDocxRow(exp.company, exp.period, true),
+              createDocxRow(exp.company, exp.period || "", true),
               createDocxRow(exp.title, exp.location || "", false),
               ...exp.bullets.map(b => new Paragraph({
                 bullet: { level: 0 },
@@ -831,7 +736,7 @@
               }))
             ])),
             ...buildDocxSection("Leadership Experience", cvData.leadership.flatMap(ld => [
-              createDocxRow(ld.company, ld.period, true),
+              createDocxRow(ld.company, ld.period || "", true),
               createDocxRow(ld.title, ld.location || "", false),
               ...ld.bullets.map(b => new Paragraph({
                 bullet: { level: 0 },
@@ -854,10 +759,13 @@
               spacing: { after: 40 },
               children: [new TextRun({ text: ex, size: 19 })]
             }))),
-            ...buildDocxSection("Technical Skills & Competencies", cvData.skills.technical ? [
+            ...buildDocxSection("Skills & Interests", (cvData.skills_interests && (cvData.skills_interests.skills || cvData.skills_interests.interests)) ? [
               new Paragraph({
-                spacing: { after: 60 },
-                children: [new TextRun({ text: cvData.skills.technical, size: 19 })]
+                spacing: { after: 40 },
+                children: [
+                  new TextRun({ text: "Technical & Core Skills: ", bold: true, size: 19 }),
+                  new TextRun({ text: cvData.skills_interests.skills || "", size: 19 })
+                ]
               })
             ] : []),
             ...buildDocxSection("References", cvData.references.map(rf => new Paragraph({
@@ -874,7 +782,7 @@
           new Paragraph({
             spacing: { before: 180, after: 70 },
             border: { bottom: { color: "E2E8F0", space: 1, value: "single", size: 6 } },
-            children: [new TextRun({ text: title.toUpperCase(), bold: true, size: 22, color: hexColor })]
+            children: [new TextRun({ text: title.toUpperCase(), bold: true, size: 21, color: "1E3A8A" })]
           }),
           ...paragraphs
         ];
@@ -884,32 +792,22 @@
         return new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           borders: {
-            top: { style: BorderStyle.NONE },
-            left: { style: BorderStyle.NONE },
-            bottom: { style: BorderStyle.NONE },
-            right: { style: BorderStyle.NONE },
-            insideHorizontal: { style: BorderStyle.NONE },
-            insideVertical: { style: BorderStyle.NONE },
+            top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE },
+            bottom: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+            insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE },
           },
           rows: [
             new TableRow({
               children: [
                 new TableCell({
                   width: { size: 75, type: WidthType.PERCENTAGE },
-                  children: [new Paragraph({
-                    children: [new TextRun({ text: left, bold: isBold, size: 20, color: "0F172A" })]
-                  })]
+                  children: [new Paragraph({ children: [new TextRun({ text: left, bold: isBold, size: 20, color: "0F172A" })] })]
                 }),
                 new TableCell({
                   width: { size: 25, type: WidthType.PERCENTAGE },
                   children: [new Paragraph({
                     alignment: docx.AlignmentType.RIGHT,
-                    children: [new TextRun({ 
-                      text: right, 
-                      bold: isRightColored, 
-                      size: 18, 
-                      color: isRightColored ? colorHex : "475569" 
-                    })]
+                    children: [new TextRun({ text: right, bold: isRightColored, size: 18, color: isRightColored ? colorHex : "475569" })]
                   })]
                 })
               ]
@@ -919,11 +817,12 @@
       }
 
       Packer.toBlob(doc).then(blob => {
-        saveAs(blob, `${cvData.name.replace(/\s+/g, '_')}_JobStar_CV.docx`);
+        saveAs(blob, `${(cvData.name || 'JobStar').replace(/\s+/g, '_')}_CV.docx`);
       });
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      updateAiBadge();
       renderPreview();
     });
   </script>
