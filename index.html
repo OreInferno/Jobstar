@@ -110,7 +110,7 @@
         <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-extrabold text-white text-xl shadow">★</div>
         <div>
           <span class="text-xl font-bold tracking-tight text-white">Job<span class="text-blue-500">Star</span></span>
-          <span class="text-xs bg-slate-800 text-blue-400 font-semibold px-2 py-0.5 rounded-full ml-2 border border-slate-700">v3.2 State-Isolated</span>
+          <span class="text-xs bg-slate-800 text-blue-400 font-semibold px-2 py-0.5 rounded-full ml-2 border border-slate-700">v4.0 Stream Parser</span>
         </div>
       </div>
       <div class="flex items-center space-x-3">
@@ -143,10 +143,10 @@
       <div id="draft-pane" class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
         <div>
           <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
-            <span>Resilient CV Parser</span>
+            <span>Automated Stream Parser</span>
             <span id="domain-badge" class="text-[10px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded uppercase">Universal Parser</span>
           </h2>
-          <p class="text-xs text-slate-500 mt-1">Normalizes kerning, unpacks multi-column text, clears previous cache, and builds an ATS layout.</p>
+          <p class="text-xs text-slate-500 mt-1">Automatically resolves glued sections, spaced letters, and run-on multi-column streams into a clean ATS CV.</p>
         </div>
 
         <div class="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center hover:bg-slate-50 transition cursor-pointer relative" id="drop-zone">
@@ -172,7 +172,7 @@
         <div id="algo-log" class="hidden bg-slate-900 rounded-lg p-3 text-[11px] font-mono text-slate-300 space-y-1">
           <div class="text-blue-400 font-bold border-b border-slate-800 pb-1">⚡ Parser Execution Log:</div>
           <div id="log-status" class="text-emerald-400"></div>
-          <div id="log-domain" class="text-amber-300"></div>
+          <div id="log-counts" class="text-blue-300"></div>
         </div>
       </div>
 
@@ -214,7 +214,6 @@
   </main>
 
   <script>
-    // State Store Factory - Guarantees Complete Isolation
     function createCleanState() {
       return {
         name: "",
@@ -242,36 +241,76 @@
       populateForm();
     }
 
-    // 1. Kerning & Spaced Lettering Normalizer
+    // 1. Unspace Spaced Lettering (e.g. "D A N I E L   F A D I O R A" -> "DANIEL FADIORA")
     function normalizeSpacedLetters(text) {
-      // Collapses "D A N I E L   F A D I O R A" -> "DANIEL FADIORA"
-      // Collapses "S K I L L S" -> "SKILLS"
-      return text.replace(/\b([A-Za-z]\s+){2,}[A-Za-z]\b/g, match => {
-        return match.split(/\s{2,}/).map(token => token.replace(/\s+/g, '')).join(' ');
+      let cleaned = text.replace(/(?:[A-Za-z\-]\s+){2,}[A-Za-z\-]/g, match => {
+        let parts = match.trim().split(/\s{2,}|\n/);
+        return parts.map(p => p.replace(/\s+/g, '')).join(' ');
       });
+      cleaned = cleaned.replace(/EXTRA\s*-\s*CURRICULAR/gi, 'EXTRACURRICULAR');
+      cleaned = cleaned.replace(/LEADERS\s+HIP/gi, 'LEADERSHIP');
+      return cleaned;
     }
 
-    // 2. Multi-Column Unpacker: Inject linebreaks before common headers
-    function unpackFlattenedColumns(text) {
-      const keywords = [
-        "PROFILE", "OBJECTIVE", "PROFESSIONAL SUMMARY",
-        "EDUCATION", "EDUCATIONAL HISTORY", "ACADEMIC QUALIFICATIONS",
-        "EMPLOYMENT HISTORY", "PROFESSIONAL EXPERIENCE", "WORK EXPERIENCE", "EXPERIENCE", "WORKING STATUS",
-        "LEADERSHIP EXPERIENCE", "LEADERSHIP", 
-        "EXTRA-CURRICULAR ACTIVITIES", "EXTRACURRICULAR ACTIVITY", "EXTRACURRICULAR",
-        "CERTIFICATIONS", "CERTIFICATES", "CONVENTIONS/SUMMITS", "CONVENTIONS",
-        "PUBLICATIONS", "RESEARCH", "PROJECTS", "CONTRIBUTION TO RESEARCH",
-        "SKILLS", "TECHNICAL SKILLS", "NON-TECHNICAL SKILLS", "LANGUAGES", "HOBBIES",
-        "AREAS OF SPECIALISATION", "MEMBER OF LEARNED SOCIETIES", "REFEREES", "REFERENCES",
-        "DETAILS", "ADDRESS", "PHONE", "EMAIL", "LINKS"
+    // 2. Insert Delimiters Before Glued Section Headers
+    function segmentGluedSections(text) {
+      const headers = [
+        "PERSONAL DATA", "WORKING STATUS", "EDUCATIONAL HISTORY", "ACADEMIC QUALIFICATIONS", "EDUCATION",
+        "PROFESSIONAL EXPERIENCE", "EMPLOYMENT HISTORY", "WORK EXPERIENCE", "EXPERIENCE",
+        "LEADERSHIP EXPERIENCE", "LEADERSHIP",
+        "EXTRACURRICULAR ACTIVITIES", "EXTRACURRICULAR ACTIVITY", "EXTRACURRICULAR", "EXTRA-CURRICULAR",
+        "CERTIFICATIONS & ACCREDITATIONS", "CERTIFICATIONS", "CERTIFICATES",
+        "CONVENTIONS / SUMMITS ATTENDED", "CONVENTIONS / SUMMITS", "CONVENTIONS",
+        "RESEARCH & PUBLICATIONS", "PUBLICATIONS", "RESEARCH", "CONTRIBUTION TO RESEARCH", "PROJECTS",
+        "TECHNICAL SKILLS & COMPETENCIES", "SKILLS & INTERESTS", "SKILLS", "TECHNICAL SKILLS", "NON-TECHNICAL SKILLS",
+        "AREAS OF SPECIALISATION", "MEMBER OF LEARNED SOCIETIES", "LANGUAGES", "HOBBIES",
+        "REFEREES", "REFERENCES", "PROFILE", "PROFESSIONAL SUMMARY", "OBJECTIVE", "DETAILS"
       ];
+      headers.sort((a, b) => b.length - a.length);
 
-      let unpacked = text;
-      keywords.forEach(kw => {
-        const regex = new RegExp(`(?<=[a-z0-9,\\.:;\\)\\]])\\s+(${kw})(:|\\s|$)`, 'gi');
-        unpacked = unpacked.replace(regex, '\n$1$2');
-      });
-      return unpacked;
+      let pattern = new RegExp('(' + headers.map(h => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?=[^a-z]|$)', 'gi');
+      return text.replace(pattern, (m, g1) => `\n\n===SECTION:${g1.toUpperCase()}===\n`);
+    }
+
+    // Date Pattern for Boundary Detection
+    const DATE_REGEX = /(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*)?(?:19|20)\d{2}\s*(?:–|-|—|till|present|to)\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*)?(?:(?:19|20)\d{2}|present|till date|in view|current)/i;
+
+    // 3. Decompose Continuous Section Streams Using Dates & Bullets
+    function decomposeSectionStream(lines) {
+      let rawText = lines.join(' ');
+      // Split on bullet points or date boundaries
+      let tokens = [];
+      let temp = rawText;
+
+      // Extract items by scanning for dates
+      let match;
+      let lastIndex = 0;
+      let items = [];
+      
+      // Split lines cleanly if they were already formatted
+      if (lines.length > 2 && lines.some(l => DATE_REGEX.test(l))) {
+        let currentItem = [];
+        lines.forEach(l => {
+          let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
+          if (!clean || clean === '|') return;
+          if (DATE_REGEX.test(clean) && currentItem.length > 0) {
+            items.push(currentItem);
+            currentItem = [clean];
+          } else {
+            currentItem.push(clean);
+          }
+        });
+        if (currentItem.length > 0) items.push(currentItem);
+        return items;
+      }
+
+      // If text is a single giant flattened stream:
+      let bulletParts = rawText.split(/[•\*\-]\s+/).filter(p => p.trim().length > 0);
+      if (bulletParts.length > 1) {
+        return bulletParts.map(bp => [bp.trim()]);
+      }
+
+      return lines.map(l => [l.trim()]);
     }
 
     // Master Parser
@@ -279,236 +318,286 @@
       const rawInput = document.getElementById('raw-draft-input').value;
       if (!rawInput.trim()) return;
 
-      // Hard Wipe: Prevent state pollution from prior candidate
       cvData = createCleanState();
 
-      // Normalize kerning and line breaks
-      const cleanStream = unpackFlattenedColumns(normalizeSpacedLetters(rawInput));
-      const lines = cleanStream.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      // Normalize kerning and segment glued headers
+      let normalized = segmentGluedSections(normalizeSpacedLetters(rawInput));
 
-      // Extract Candidate Name
-      for (let i = 0; i < Math.min(lines.length, 12); i++) {
-        let line = lines[i];
-        
-        // Remove prefixes like "Name:", "i. Name:"
-        line = line.replace(/^(?:[A-Z0-9\.\-\)\*]+\s+)?(?:Name\s*:?\s*)/i, '').trim();
+      // Separate into Section Buckets
+      let sectionBuckets = {};
+      let currentSec = "HEADER";
+      sectionBuckets[currentSec] = [];
 
-        // Check for stopping tokens
-        let tokenMatch = line.match(/^(.*?)(?=\s+(?:DETAILS|PROFILE|ADDRESS|PHONE|EMAIL|LINKS|EDUCATION|CURRICULUM|BIO)\b)/i);
-        if (tokenMatch) {
-          line = tokenMatch[1].trim();
-        }
-
-        if (line.toLowerCase().includes("curriculum vitae") || line.toLowerCase().includes("personal data")) {
-          continue;
-        }
-
-        if (/^[a-zA-Z\s,\.\-]{3,45}$/.test(line) && line.split(/\s+/).length >= 2) {
-          cvData.name = line.replace(/,/g, '').trim().toUpperCase();
-          break;
-        }
-      }
-
-      if (!cvData.name) {
-        cvData.name = "CANDIDATE FULL NAME";
-      }
-
-      // Extract Contact Information
-      const fullText = lines.join(' ');
-      const emails = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-      const phones = fullText.match(/(?:\+?234|0)[789][01]\d{8}/g) || [];
-      
-      let locMatch = fullText.match(/([A-Za-z\s]+(?:State|Lagos|Ibadan|Abuja|Osogbo|Oyo|Ogun|Ghana|Kumasi))/i);
-      let location = locMatch ? locMatch[1].trim() : "Nigeria";
-
-      const contactArr = [];
-      if (location) contactArr.push(location);
-      if (phones.length) contactArr.push(phones[0]);
-      if (emails.length) contactArr.push(emails[0]);
-
-      cvData.contact = contactArr.join('  |  ');
-
-      // Section Classification
-      let currentSection = "HEADER";
-      let expBuffer = [];
-      let eduBuffer = [];
-      let leadBuffer = [];
-      let certBuffer = [];
-      let extraBuffer = [];
-      let refBuffer = [];
-      let skillBuffer = [];
-      let pubBuffer = [];
-
-      lines.forEach(line => {
-        const upper = line.toUpperCase();
-
-        if (upper.includes("EDUCATION") || upper.includes("ACADEMIC QUALIFICATION") || upper.includes("INSTITUTIONS ATTENDED")) {
-          currentSection = "EDUCATION"; return;
-        }
-        if (upper.includes("EMPLOYMENT HISTORY") || upper.includes("WORK EXPERIENCE") || upper.includes("WORKING STATUS") || upper.includes("PROFESSIONAL EXPERIENCE")) {
-          currentSection = "EXPERIENCE"; return;
-        }
-        if (upper.includes("LEADERSHIP")) {
-          currentSection = "LEADERSHIP"; return;
-        }
-        if (upper.includes("CERTIFICAT") || upper.includes("LICENS")) {
-          currentSection = "CERTIFICATIONS"; return;
-        }
-        if (upper.includes("EXTRA-CURRICULAR") || upper.includes("VOLUNTEER") || upper.includes("COMMUNITY")) {
-          currentSection = "EXTRACURRICULAR"; return;
-        }
-        if (upper.includes("SKILL") || upper.includes("COMPETENC")) {
-          currentSection = "SKILLS"; return;
-        }
-        if (upper.includes("PUBLICAT") || upper.includes("RESEARCH") || upper.includes("PROJECT")) {
-          currentSection = "RESEARCH"; return;
-        }
-        if (upper.includes("REFEREE") || upper.includes("REFERENCES")) {
-          currentSection = "REFERENCES"; return;
-        }
-
-        // Section Routing
-        if (currentSection === "EDUCATION") {
-          // Rule: Prune Secondary Education
-          if (!/secondary|high school|waec|ssce|neco|infant school|primary school/i.test(line)) {
-            eduBuffer.push(line);
-          }
-        } else if (currentSection === "EXPERIENCE") {
-          // Rule: Shunt outreaches
-          if (/outreach|volunteer\b|blood drive|pad drive|walk for/i.test(line)) {
-            extraBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
-          } else {
-            expBuffer.push(line);
-          }
-        } else if (currentSection === "LEADERSHIP") {
-          leadBuffer.push(line);
-        } else if (currentSection === "CERTIFICATIONS") {
-          certBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
-        } else if (currentSection === "EXTRACURRICULAR") {
-          extraBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
-        } else if (currentSection === "SKILLS") {
-          skillBuffer.push(line);
-        } else if (currentSection === "RESEARCH") {
-          pubBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
-        } else if (currentSection === "REFERENCES") {
-          refBuffer.push(line);
+      normalized.split('\n').forEach(line => {
+        let trimmed = line.trim();
+        if (!trimmed) return;
+        if (trimmed.startsWith("===SECTION:") && trimmed.endsWith("===")) {
+          currentSec = trimmed.replace("===SECTION:", "").replace("===", "").trim();
+          if (!sectionBuckets[currentSec]) sectionBuckets[currentSec] = [];
+        } else {
+          sectionBuckets[currentSec].push(trimmed);
         }
       });
 
-      // Parse Education
-      cvData.education = parseEduItems(eduBuffer);
-
-      // Parse Experience
-      cvData.experience = parseExperienceItems(expBuffer);
-
-      // Parse Leadership
-      if (leadBuffer.length > 0) {
-        cvData.leadership = parseExperienceItems(leadBuffer);
+      // 1. Extract Name & Contact from HEADER
+      let headerLines = sectionBuckets["HEADER"] || [];
+      for (let i = 0; i < Math.min(headerLines.length, 8); i++) {
+        let l = headerLines[i].replace(/^(?:Name\s*:?\s*)/i, '').replace(/,/g, '').trim();
+        if (/^[a-zA-Z\s\.\-]{3,45}$/.test(l) && l.split(/\s+/).length >= 2) {
+          cvData.name = l.toUpperCase();
+          break;
+        }
+      }
+      if (!cvData.name) {
+        let firstLine = (headerLines[0] || "").split(/\s{2,}|DETAILS|PROFILE|ADDRESS/)[0].trim();
+        cvData.name = firstLine.replace(/,/g, '').toUpperCase() || "CANDIDATE FULL NAME";
       }
 
-      // Other Sections
-      cvData.certifications = certBuffer.filter(c => c.length > 5);
-      cvData.extracurricular = extraBuffer.filter(e => e.length > 5);
-      cvData.research = pubBuffer.filter(p => p.length > 5);
+      // Contact Extraction Across Whole Document
+      let allText = rawInput;
+      let emails = allText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+      let phones = allText.match(/(?:\+?234|0)[789][01]\d{8}/g) || [];
+      let locMatch = allText.match(/([A-Za-z\s]+(?:State|Lagos|Ibadan|Abuja|Osogbo|Oyo|Ogun|Ghana|Kumasi))/i);
+      let location = locMatch ? locMatch[1].trim() : "Nigeria";
 
-      // Process Skills
-      if (skillBuffer.length > 0) {
-        cvData.skills.technical = skillBuffer.join(', ').replace(/SKILLS|NON-TECHNICAL SKILLS|TECHNICAL SKILLS/gi, '').replace(/\s{2,}/g, ' ').trim();
+      let contactArr = [];
+      if (location) contactArr.push(location);
+      if (phones.length) contactArr.push(phones[0]);
+      if (emails.length) contactArr.push(emails[0]);
+      cvData.contact = contactArr.join('  |  ');
+
+      // 2. Parse EDUCATION
+      let eduLines = [
+        ...(sectionBuckets["EDUCATION"] || []),
+        ...(sectionBuckets["EDUCATIONAL HISTORY"] || []),
+        ...(sectionBuckets["ACADEMIC QUALIFICATIONS"] || [])
+      ];
+      cvData.education = parseStructuredEducation(eduLines);
+
+      // 3. Parse PROFESSIONAL EXPERIENCE
+      let expLines = [
+        ...(sectionBuckets["PROFESSIONAL EXPERIENCE"] || []),
+        ...(sectionBuckets["EMPLOYMENT HISTORY"] || []),
+        ...(sectionBuckets["WORK EXPERIENCE"] || []),
+        ...(sectionBuckets["EXPERIENCE"] || []),
+        ...(sectionBuckets["WORKING STATUS"] || [])
+      ];
+      cvData.experience = parseStructuredExperience(expLines);
+
+      // 4. Parse LEADERSHIP
+      let leadLines = [
+        ...(sectionBuckets["LEADERSHIP EXPERIENCE"] || []),
+        ...(sectionBuckets["LEADERSHIP"] || [])
+      ];
+      cvData.leadership = parseStructuredExperience(leadLines);
+
+      // 5. Parse EXTRACURRICULAR
+      let extraLines = [
+        ...(sectionBuckets["EXTRACURRICULAR ACTIVITIES"] || []),
+        ...(sectionBuckets["EXTRACURRICULAR ACTIVITY"] || []),
+        ...(sectionBuckets["EXTRACURRICULAR"] || [])
+      ];
+      extraLines.forEach(l => {
+        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 5) cvData.extracurricular.push(clean);
+      });
+
+      // 6. Parse CONVENTIONS & CONFERENCES
+      let convLines = [
+        ...(sectionBuckets["CONVENTIONS / SUMMITS ATTENDED"] || []),
+        ...(sectionBuckets["CONVENTIONS / SUMMITS"] || []),
+        ...(sectionBuckets["CONVENTIONS"] || [])
+      ];
+      convLines.forEach(l => {
+        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 8) cvData.extracurricular.push(clean);
+      });
+
+      // 7. Parse RESEARCH & PUBLICATIONS
+      let pubLines = [
+        ...(sectionBuckets["RESEARCH & PUBLICATIONS"] || []),
+        ...(sectionBuckets["PUBLICATIONS"] || []),
+        ...(sectionBuckets["RESEARCH"] || []),
+        ...(sectionBuckets["CONTRIBUTION TO RESEARCH"] || []),
+        ...(sectionBuckets["PROJECTS"] || [])
+      ];
+      pubLines.forEach(l => {
+        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 8) cvData.research.push(clean);
+      });
+
+      // 8. Parse CERTIFICATIONS
+      let certLines = [
+        ...(sectionBuckets["CERTIFICATIONS & ACCREDITATIONS"] || []),
+        ...(sectionBuckets["CERTIFICATIONS"] || []),
+        ...(sectionBuckets["CERTIFICATES"] || [])
+      ];
+      certLines.forEach(l => {
+        let clean = l.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (clean.length > 5) cvData.certifications.push(clean);
+      });
+
+      // 9. Parse SKILLS & HOBBIES
+      let skillLines = [
+        ...(sectionBuckets["TECHNICAL SKILLS & COMPETENCIES"] || []),
+        ...(sectionBuckets["SKILLS & INTERESTS"] || []),
+        ...(sectionBuckets["SKILLS"] || []),
+        ...(sectionBuckets["TECHNICAL SKILLS"] || []),
+        ...(sectionBuckets["NON-TECHNICAL SKILLS"] || []),
+        ...(sectionBuckets["LANGUAGES"] || []),
+        ...(sectionBuckets["HOBBIES"] || [])
+      ];
+      if (skillLines.length > 0) {
+        cvData.skills.technical = skillLines.join(', ')
+          .replace(/SKILLS|NON-TECHNICAL SKILLS|TECHNICAL SKILLS|LANGUAGES|HOBBIES/gi, '')
+          .replace(/\s{2,}/g, ' ')
+          .replace(/^[,\s]+/, '')
+          .trim();
       }
 
-      // Process References
-      if (refBuffer.length > 0) {
-        cvData.references = refBuffer.filter(r => r.length > 4);
-      }
+      // 10. Parse REFERENCES
+      let refLines = [
+        ...(sectionBuckets["REFEREES"] || []),
+        ...(sectionBuckets["REFERENCES"] || [])
+      ];
+      cvData.references = refLines.map(r => r.replace(/^[•\-\*\|\s]+/, '').trim()).filter(r => r.length > 5);
 
-      // Determine Domain
-      detectDomain(fullText);
+      // Automated Rule: Shunt Outreaches out of Experience into Extracurriculars
+      shuntOutreaches();
 
-      // Update Log
+      // Log execution
       document.getElementById('algo-log').classList.remove('hidden');
-      document.getElementById('log-status').innerText = `✔ Hard-reset successful: Clean parse completed for ${cvData.name}`;
-      document.getElementById('log-domain').innerText = `✔ Classified Domain: ${cvData.domain}`;
+      document.getElementById('log-status').innerText = `✔ Parsed: ${cvData.name}`;
+      document.getElementById('log-counts').innerText = `✔ Extracted: ${cvData.education.length} Degrees | ${cvData.experience.length} Experience Entries | ${cvData.leadership.length} Leadership Roles | ${cvData.extracurricular.length} Extracurricular Activities`;
 
       populateForm();
       renderPreview();
     }
 
-    function parseEduItems(buffer) {
-      const items = [];
+    // Education Parser
+    function parseStructuredEducation(lines) {
+      let items = [];
       let current = null;
 
-      buffer.forEach(line => {
-        let dateMatch = line.match(/(?:19|20)\d{2}\s*(?:–|-|till|present|to)\s*(?:(?:19|20)\d{2}|present|in view|till date)/i);
-        let date = dateMatch ? dateMatch[0] : "";
-        let clean = line.replace(date, '').replace(/^[•\-\*iIvVxX0-9\.\)]\s*/, '').trim();
+      lines.forEach(raw => {
+        let line = raw.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (!line || line === '|') return;
 
-        if (/university|college|polytechnic|institute|academy/i.test(clean)) {
-          if (current) items.push(current);
-          current = { institution: clean, period: date || "Completed", degree: "Bachelor's Degree", honor: "" };
+        // Rule: Prune Secondary Education
+        if (/secondary|high school|waec|ssce|neco|infant school|primary school/i.test(line)) {
+          return;
+        }
+
+        let dateMatch = line.match(DATE_REGEX);
+        let date = dateMatch ? dateMatch[0] : "";
+        let clean = line.replace(date, '').replace(/\|/g, '').trim();
+
+        let isInstitution = /university|college|institute|polytechnic|school of/i.test(clean);
+        let isDegree = /bachelor|master|b\.?sc|m\.?sc|mb;?bs|phd|diploma|certificate|associate/i.test(clean);
+
+        if (isInstitution && !current) {
+          current = { institution: clean, period: date, degree: "", honor: "" };
+        } else if (isInstitution && current) {
+          if (current.institution && (current.degree || current.period)) {
+            items.push(current);
+            current = { institution: clean, period: date, degree: "", honor: "" };
+          } else {
+            current.institution = clean;
+            if (date) current.period = date;
+          }
         } else if (current) {
-          if (/mb;bs|mbbs|b\.sc|bsc|bachelor|master|m\.sc|msc|phd|diploma|certificate/i.test(clean)) {
+          if (date && !current.period) current.period = date;
+          if (isDegree && !current.degree) {
             current.degree = clean;
-          } else if (/class|division|distinction|merit|honors/i.test(clean)) {
+          } else if (/class|division|distinction|merit|honors|view/i.test(clean)) {
             current.honor = clean;
+          } else if (!current.degree) {
+            current.degree = clean;
           }
+        } else if (clean.length > 5) {
+          current = { institution: clean, period: date, degree: "Bachelor's Degree", honor: "" };
         }
       });
+
       if (current) items.push(current);
       return items;
     }
 
-    function parseExperienceItems(buffer) {
-      const items = [];
+    // Experience & Leadership Parser
+    function parseStructuredExperience(lines) {
+      let items = [];
       let current = null;
 
-      buffer.forEach(line => {
-        let dateMatch = line.match(/(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*)?(?:19|20)\d{2}\s*(?:–|-|till|present|to)\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*)?(?:(?:19|20)\d{2}|present|till date)/i);
-        let date = dateMatch ? dateMatch[0] : "";
-        let clean = line.replace(date, '').replace(/^[•\-\*iIvVxX0-9\.\)]\s*/, '').trim();
+      lines.forEach(raw => {
+        let line = raw.replace(/^[•\-\*\|\s]+/, '').trim();
+        if (!line || line === '|') return;
 
-        if (date && clean.length < 90) {
+        let dateMatch = line.match(DATE_REGEX);
+        let date = dateMatch ? dateMatch[0] : "";
+        let clean = line.replace(date, '').replace(/\|/g, '').trim();
+
+        // If line contains date or is clearly a company / title header
+        if (date) {
           if (current) items.push(current);
-          current = { company: clean, period: date, title: "Officer / Specialist", location: "", bullets: [] };
-        } else if (current) {
-          if (clean.length > 20) {
-            current.bullets.push(clean);
-          } else if (!current.title || current.title === "Officer / Specialist") {
+          
+          let parts = clean.split(/,|\sat\s|\s-\s/);
+          let roleTitle = parts[0] ? parts[0].trim() : "Professional Role";
+          let org = parts[1] ? parts.slice(1).join(', ').trim() : clean;
+
+          current = {
+            company: org || roleTitle,
+            title: org ? roleTitle : "Officer / Specialist",
+            period: date,
+            location: "",
+            bullets: []
+          };
+          return;
+        }
+
+        // Non-date line
+        if (!current) {
+          current = { company: clean, title: "Executive / Specialist", period: "", location: "", bullets: [] };
+        } else if (!current.period && line.length < 80) {
+          if (current.title === "Executive / Specialist") {
             current.title = clean;
+          } else {
+            current.location = clean;
           }
+        } else {
+          current.bullets.push(clean);
         }
       });
+
       if (current) items.push(current);
       return items;
     }
 
-    function detectDomain(text) {
-      const t = text.toLowerCase();
-      const badge = document.getElementById('domain-badge');
+    // Outreach Shunting Rule
+    function shuntOutreaches() {
+      let remainingExp = [];
+      let outreachRegex = /outreach|volunteer|blood drive|pad drive|walk for|sensitization|charity/i;
 
-      if (/microbiol|specimen|bacteriol|infection|environmental health|culture\b/i.test(t)) {
-        cvData.domain = "HEALTH SCIENCES";
-        cvData.accentColor = "#0d9488"; // Teal
-        badge.innerText = "HEALTH SCIENCE / BIOMEDICAL";
-      } else if (/surgery|mb;bs|mbbs|hospital|clinical|patient|doctor|antenatal|paediatric/i.test(t)) {
-        cvData.domain = "CLINICAL MEDICINE";
-        cvData.accentColor = "#1e3a8a"; // Navy
-        badge.innerText = "CLINICAL MEDICINE";
-      } else if (/software|developer|python|javascript|cloud|aws|frontend|backend/i.test(t)) {
-        cvData.domain = "TECHNOLOGY";
-        cvData.accentColor = "#0f172a"; // Slate
-        badge.innerText = "TECHNOLOGY & PRODUCT";
-      } else if (/law|court|legal|litigation|ll\.b|arbitration|mediat/i.test(t)) {
-        cvData.domain = "LAW & ADR";
-        cvData.accentColor = "#1e3a8a"; // Navy
-        badge.innerText = "LEGAL PRACTICE";
-      } else {
-        cvData.domain = "GENERAL PROFESSIONAL";
-        cvData.accentColor = "#1e3a8a";
-        badge.innerText = "GENERAL PROFESSIONAL";
-      }
+      cvData.experience.forEach(exp => {
+        let expText = `${exp.company} ${exp.title} ${exp.bullets.join(' ')}`;
+        if (outreachRegex.test(exp.title) || outreachRegex.test(exp.company)) {
+          cvData.extracurricular.push(`${exp.title}, ${exp.company} (${exp.period || ''})`);
+        } else {
+          let keptBullets = [];
+          exp.bullets.forEach(b => {
+            if (outreachRegex.test(b)) {
+              cvData.extracurricular.push(b);
+            } else {
+              keptBullets.push(b);
+            }
+          });
+          exp.bullets = keptBullets;
+          remainingExp.push(exp);
+        }
+      });
+      cvData.experience = remainingExp;
     }
 
-    // Render Preview
+    // Render Live Preview
     function renderPreview() {
       const container = document.getElementById('resume-preview');
       let html = '';
@@ -540,7 +629,7 @@
         });
       }
 
-      // Experience
+      // Professional Experience
       if (cvData.experience && cvData.experience.length > 0) {
         html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Professional Experience</div>`;
         cvData.experience.forEach(exp => {
@@ -560,7 +649,7 @@
         });
       }
 
-      // Leadership
+      // Leadership Experience
       if (cvData.leadership && cvData.leadership.length > 0) {
         html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Leadership Experience</div>`;
         cvData.leadership.forEach(lead => {
@@ -588,7 +677,7 @@
         });
       }
 
-      // Research / Publications
+      // Research & Publications
       if (cvData.research && cvData.research.length > 0) {
         html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Research & Publications</div>`;
         cvData.research.forEach(r => {
@@ -596,7 +685,7 @@
         });
       }
 
-      // Extracurricular
+      // Extracurricular Activity
       if (cvData.extracurricular && cvData.extracurricular.length > 0) {
         html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Extracurricular Activity</div>`;
         cvData.extracurricular.forEach(ex => {
@@ -702,18 +791,15 @@
       renderPreview();
     }
 
-    // Direct Native Word (.docx) Exporter
+    // Native Word (.docx) Exporter
     async function exportDocx() {
       const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
-
       const hexColor = cvData.accentColor.replace('#', '');
 
       const doc = new Document({
         styles: {
           default: {
-            document: {
-              run: { font: "Arial", size: 20, color: "1E293B" }
-            }
+            document: { run: { font: "Arial", size: 20, color: "1E293B" } }
           }
         },
         sections: [{
