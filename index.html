@@ -3,27 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JobStar — Universal ATS & STAR Resume Engine for All Industries</title>
-  
-  <!-- Tailwind CSS -->
+  <title>JobStar — Universal ATS CV Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome 6.5.1 Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- docx.js for direct in-browser Word document compilation -->
   <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
-  <!-- FileSaver.js for client-side document downloads -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <!-- Mammoth.js for client-side Word document (.docx) text extraction -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  <!-- PDF.js for direct client-side PDF document text extraction -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
-    code, pre { font-family: 'JetBrains Mono', monospace; }
-
-    /* Standard A4 Paper Canvas Dimensions (Single-Column Strict ATS Compliance) */
+    
     .cv-canvas {
       font-family: Arial, Helvetica, sans-serif;
       color: #1e293b;
@@ -31,37 +25,30 @@
       width: 210mm;
       min-height: 297mm;
       padding: 16mm 16mm;
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       margin: 0 auto;
-      line-height: 1.3;
+      line-height: 1.25;
       font-size: 10pt;
-      box-sizing: border-box;
-      transition: transform 0.2s ease;
-      transform-origin: top center;
     }
-
-    .cv-header-name {
+    .cv-header-title {
       font-size: 18pt;
       font-weight: bold;
       color: #0f172a;
       text-transform: uppercase;
       text-align: center;
-      margin: 0 0 2px 0;
+      margin: 0;
       letter-spacing: 0.5px;
     }
-
     .cv-header-contact {
       font-size: 9.5pt;
       color: #475569;
       text-align: center;
+      margin-top: 4px;
       margin-bottom: 12px;
-      line-height: 1.4;
     }
-
     .cv-section-title {
       font-size: 11pt;
       font-weight: bold;
-      color: var(--theme-accent, #1e3a8a);
       text-transform: uppercase;
       border-bottom: 1px solid #e2e8f0;
       padding-bottom: 2px;
@@ -69,7 +56,6 @@
       margin-bottom: 6px;
       letter-spacing: 0.5px;
     }
-
     .cv-entry-row {
       display: flex;
       justify-content: space-between;
@@ -78,7 +64,6 @@
       font-weight: bold;
       color: #0f172a;
     }
-
     .cv-entry-sub {
       display: flex;
       justify-content: space-between;
@@ -88,23 +73,18 @@
       color: #334155;
       margin-bottom: 4px;
     }
-
     .cv-entry-sub .highlight {
       font-style: normal;
       font-weight: bold;
-      color: var(--theme-accent, #1e3a8a);
     }
-
     .cv-bullet {
       position: relative;
       padding-left: 14px;
-      margin-bottom: 3.5px;
+      margin-bottom: 3px;
       font-size: 9.5pt;
       color: #1e293b;
       line-height: 1.35;
-      text-align: justify;
     }
-
     .cv-bullet::before {
       content: "•";
       position: absolute;
@@ -114,441 +94,421 @@
       font-size: 11pt;
     }
 
-    /* Custom Scrollbars */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
     @media print {
-      body { background: white !important; padding: 0 !important; margin: 0 !important; }
+      body { background: white !important; padding: 0 !important; }
       .no-print { display: none !important; }
-      .cv-canvas { 
-        box-shadow: none !important; 
-        margin: 0 !important; 
-        width: 100% !important; 
-        padding: 12mm !important; 
-        transform: scale(1) !important;
-      }
+      .cv-canvas { box-shadow: none !important; margin: 0 !important; width: 100% !important; padding: 12mm !important; }
     }
   </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col antialiased select-none" style="--theme-accent: #1e3a8a;">
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col">
 
-  <!-- Top Application Navigation -->
-  <header class="no-print bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-lg">
+  <!-- Header -->
+  <header class="no-print bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-md">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-      
-      <!-- Brand & Capabilities -->
       <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-cyan-500 flex items-center justify-center font-black text-amber-300 text-xl shadow-md border border-blue-400/30">★</div>
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-extrabold text-white text-xl shadow">★</div>
         <div>
-          <div class="flex items-center space-x-2">
-            <span class="text-xl font-bold tracking-tight text-white">Job<span class="text-blue-400">Star</span></span>
-            <span class="text-[10px] bg-gradient-to-r from-blue-900 to-indigo-900 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-700/60 hidden sm:inline">Universal Parser v6.0</span>
-          </div>
-          <p class="text-[11px] text-slate-400 hidden md:block">Universal Extraction for Tech, Medicine, Health Science, Law, Finance & Public Administration</p>
+          <span class="text-xl font-bold tracking-tight text-white">Job<span class="text-blue-500">Star</span></span>
+          <span class="text-xs bg-slate-800 text-blue-400 font-semibold px-2 py-0.5 rounded-full ml-2 border border-slate-700">v3.2 State-Isolated</span>
         </div>
       </div>
-      
-      <!-- Actions Suite -->
-      <div class="flex items-center space-x-2 sm:space-x-3">
-        
-        <!-- Preset Selector -->
-        <div class="relative">
-          <select id="preset-selector" onchange="loadPreset(this.value)" class="bg-slate-800 text-slate-200 border border-slate-700 text-xs rounded-lg px-2.5 py-2 pr-7 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none cursor-pointer max-w-[150px] sm:max-w-[210px] truncate">
-            <option value="empty">Template: Blank Workspace</option>
-            <optgroup label="Health Science & Environment">
-              <option value="adefarasin" selected>Precious Adefarasin (M.Sc. Env / Microbiology)</option>
-              <option value="health_clinical">Medicine: Resident Physician / Intern</option>
-            </optgroup>
-            <optgroup label="Technology & Data">
-              <option value="tech_software">Tech: Full-Stack & Cloud Engineer</option>
-              <option value="tech_data">Data: Health Data Scientist & Analyst</option>
-            </optgroup>
-            <optgroup label="Finance & Law">
-              <option value="finance_banking">Finance: Investment Banking Analyst</option>
-              <option value="law_corporate">Law: Corporate Practice Associate</option>
-            </optgroup>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-            <i class="fa-solid fa-chevron-down text-[9px]"></i>
-          </div>
-        </div>
-
-        <!-- Copy Plaintext Action -->
-        <button onclick="copyFormattedText()" class="px-2.5 sm:px-3 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-medium transition flex items-center gap-1.5 text-slate-300 hover:text-white" title="Copy ATS plain text">
-          <i class="fa-regular fa-copy"></i>
-          <span class="hidden xl:inline">Copy Text</span>
+      <div class="flex items-center space-x-3">
+        <button onclick="window.print()" class="px-3.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm font-medium transition flex items-center gap-1.5">
+          <span>Print / PDF</span>
         </button>
-
-        <!-- Print / PDF Action -->
-        <button onclick="window.print()" class="px-2.5 sm:px-3 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-medium transition flex items-center gap-1.5 text-slate-300 hover:text-white" title="Print or save as PDF">
-          <i class="fa-solid fa-print"></i>
-          <span class="hidden sm:inline">Print / PDF</span>
-        </button>
-
-        <!-- Export DOCX Action -->
-        <button onclick="exportDocx()" class="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
-          <i class="fa-solid fa-file-word"></i>
+        <button onclick="exportDocx()" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
           <span>Export DOCX</span>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Main Grid Workspace -->
-  <main class="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 w-full">
+  <!-- Workspace Grid -->
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 w-full">
 
-    <!-- Left Controls Panel (5 cols) -->
+    <!-- Controls Panel (Left, 5 cols) -->
     <section class="no-print lg:col-span-5 space-y-4">
       
-      <!-- Primary Tab Navigation -->
-      <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex text-xs font-semibold">
-        <button id="tab-draft-btn" onclick="switchMode('draft')" class="flex-1 py-2 rounded-lg bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span>Auto-Ingestion</span>
+      <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
+        <button id="tab-draft-btn" onclick="switchMode('draft')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 transition">
+          Auto-Ingestion
         </button>
-        <button id="tab-form-btn" onclick="switchMode('form')" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-sliders"></i>
-          <span>Modular Builder</span>
-        </button>
-        <button id="tab-audit-btn" onclick="switchMode('audit')" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-gauge-high"></i>
-          <span>ATS Scorer</span>
+        <button id="tab-form-btn" onclick="switchMode('form')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition">
+          Modular Builder
         </button>
       </div>
 
-      <!-- Mode 1: Smart Ingestion Pane -->
+      <!-- Ingestion Pane -->
       <div id="draft-pane" class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
         <div>
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Resilient CV Parser</h2>
-            <span id="detected-domain-pill" class="text-[10px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded">Auto-Detect Domain</span>
-          </div>
-          <p class="text-xs text-slate-500 mt-1">
-            Handles traditional academic, commonwealth, and civil service CV formats (e.g. <code>A. PERSONAL DATA</code>, <code>Institutions Attended</code>, Roman numerals). Automatically strips obsolete personal metadata (place of birth, next of kin, state of origin, marital status) and organizes education, experience, research contributions, and referees.
-          </p>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
+            <span>Resilient CV Parser</span>
+            <span id="domain-badge" class="text-[10px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded uppercase">Universal Parser</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">Normalizes kerning, unpacks multi-column text, clears previous cache, and builds an ATS layout.</p>
         </div>
 
-        <!-- File Drag-and-Drop Area -->
-        <div class="border-2 border-dashed border-slate-300 rounded-lg p-3.5 text-center hover:bg-slate-50 transition cursor-pointer relative" id="drop-zone">
-          <input type="file" id="file-uploader" accept=".pdf,.docx,.txt" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
-          <div class="flex flex-col items-center justify-center space-y-1">
-            <i class="fa-solid fa-file-arrow-up text-blue-600 text-xl"></i>
-            <div class="text-xs text-slate-700 font-medium">
-              <span class="font-bold text-blue-600">Upload document</span> or drag & drop (<span class="font-mono text-[11px] text-slate-600">.pdf, .docx, .txt</span>)
-            </div>
-            <p class="text-[10px] text-slate-400">Direct in-browser parsing. 100% private and confidential.</p>
+        <div class="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center hover:bg-slate-50 transition cursor-pointer relative" id="drop-zone">
+          <input type="file" id="file-uploader" accept=".txt,.docx,.pdf" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+          <div class="flex flex-col items-center">
+            <svg class="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            <span class="text-xs font-semibold text-slate-700">Upload document (.docx, .pdf, .txt)</span>
+            <span class="text-[11px] text-slate-400 mt-0.5">Click or drag and drop</span>
           </div>
         </div>
         
-        <textarea id="raw-draft-input" rows="11" placeholder="Paste unformatted CV text here..." class="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"></textarea>
+        <textarea id="raw-draft-input" rows="12" placeholder="Document text will populate here..." class="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"></textarea>
 
         <div class="flex gap-2">
-          <button onclick="executeJobStarAlgorithm()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs sm:text-sm font-bold shadow transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>Transform & Format CV</span>
+          <button onclick="processCleanDraft()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow transition">
+            Transform with JobStar
           </button>
-          <button onclick="loadSampleDraft()" class="px-3 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium whitespace-nowrap">
-            Load Sample
-          </button>
-          <button onclick="resetWorkspace()" class="px-3 py-2.5 border border-rose-300 hover:bg-rose-50 text-rose-700 rounded-lg text-xs font-medium whitespace-nowrap" title="Reset all data">
-            Clear
+          <button onclick="resetCvState(); renderPreview();" class="px-3 py-2.5 border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium whitespace-nowrap">
+            Clear All
           </button>
         </div>
 
-        <!-- Transformation Execution Audit Log -->
-        <div id="algo-log" class="hidden bg-slate-900 rounded-lg p-3 text-[11px] font-mono text-slate-300 space-y-1.5 border border-slate-800">
-          <div class="text-blue-400 font-bold border-b border-slate-800 pb-1 flex items-center justify-between">
-            <span>⚡ Transformation & Parsing Audit Report</span>
-            <span class="text-[9px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800">Done</span>
-          </div>
-          <div id="log-name" class="text-indigo-300"></div>
-          <div id="log-domain" class="text-cyan-300"></div>
-          <div id="log-pruned" class="text-rose-400"></div>
-          <div id="log-shunted" class="text-amber-400"></div>
-          <div id="log-star" class="text-emerald-400"></div>
+        <div id="algo-log" class="hidden bg-slate-900 rounded-lg p-3 text-[11px] font-mono text-slate-300 space-y-1">
+          <div class="text-blue-400 font-bold border-b border-slate-800 pb-1">⚡ Parser Execution Log:</div>
+          <div id="log-status" class="text-emerald-400"></div>
+          <div id="log-domain" class="text-amber-300"></div>
         </div>
       </div>
 
-      <!-- Mode 2: Modular Form Builder Pane -->
-      <div id="form-pane" class="hidden bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4 max-h-[82vh] overflow-y-auto">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Modular Values Editor</h2>
-          <span class="text-[10px] text-slate-400">Live sync active</span>
-        </div>
-        
-        <!-- Header Info -->
-        <div class="space-y-2.5">
+      <!-- Form Pane -->
+      <div id="form-pane" class="hidden bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4 max-h-[80vh] overflow-y-auto">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Modular Form Inputs</h2>
+        <div class="space-y-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
-            <input type="text" id="form-name" oninput="syncForm()" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input type="text" id="form-name" oninput="syncForm()" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Clean Contact Line</label>
-            <input type="text" id="form-contact" oninput="syncForm()" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Location | Phone | Email">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Contact Line</label>
+            <input type="text" id="form-contact" oninput="syncForm()" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
         </div>
-
         <hr class="border-slate-200">
-
-        <!-- Professional Summary -->
         <div>
-          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Professional Summary</h3>
-          <textarea id="form-summary" oninput="syncForm()" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Target professional summary..."></textarea>
+          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Extracurricular Activity & Outreaches</h3>
+          <textarea id="form-extracurricular" oninput="syncForm()" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
         </div>
-
         <hr class="border-slate-200">
-
-        <!-- Education Controls -->
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xs font-bold text-slate-700 uppercase">Education & Degrees</h3>
-            <button onclick="addEducationRow()" class="text-xs text-blue-600 hover:underline font-semibold">+ Add Degree</button>
-          </div>
-          <div id="form-edu-container" class="space-y-2"></div>
-        </div>
-
-        <hr class="border-slate-200">
-        
-        <!-- Professional Experience Controls -->
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xs font-bold text-slate-700 uppercase">Professional Experience</h3>
-            <button onclick="addExperienceRole()" class="text-xs text-blue-600 hover:underline font-semibold">+ Add Role</button>
-          </div>
-          <div id="form-exp-container" class="space-y-3"></div>
-        </div>
-
-        <hr class="border-slate-200">
-
-        <!-- Certifications -->
-        <div>
-          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Certifications & Accreditations</h3>
-          <textarea id="form-certifications" oninput="syncForm()" rows="2.5" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="One certification per line"></textarea>
-        </div>
-
-        <hr class="border-slate-200">
-
-        <!-- Extracurricular / Memberships -->
-        <div>
-          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Extracurricular Activity & Affiliations</h3>
-          <textarea id="form-extracurricular" oninput="syncForm()" rows="2.5" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="One initiative per line"></textarea>
-        </div>
-
-        <hr class="border-slate-200">
-
-        <!-- Skills & Competencies -->
         <div>
           <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">Technical Skills & Competencies</h3>
-          <div class="space-y-2">
-            <input type="text" id="form-skills-tech" oninput="syncForm()" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md" placeholder="Technical / Core Competencies">
-            <input type="text" id="form-skills-tools" oninput="syncForm()" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md" placeholder="Tools, Software & Platforms">
-            <input type="text" id="form-skills-lang" oninput="syncForm()" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md" placeholder="Languages & Soft Skills">
-          </div>
+          <textarea id="form-skills" oninput="syncForm()" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
         </div>
-
-        <hr class="border-slate-200">
-
-        <!-- References -->
-        <div>
-          <h3 class="text-xs font-bold text-slate-700 uppercase mb-1">References / Referees</h3>
-          <textarea id="form-references" oninput="syncForm()" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-md" placeholder="Referee contact details..."></textarea>
-        </div>
-      </div>
-
-      <!-- Mode 3: Live ATS Audit & Scorer Pane -->
-      <div id="audit-pane" class="hidden bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <div>
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Universal ATS Audit</h2>
-            <span id="score-badge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">Score: 100/100</span>
-          </div>
-          <p class="text-xs text-slate-500 mt-1">Evaluates parser friendliness, single-column architecture, metadata hygiene, and quantified impact.</p>
-        </div>
-
-        <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-          <div id="score-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 100%;"></div>
-        </div>
-
-        <div class="space-y-2 text-xs" id="audit-checklist"></div>
       </div>
     </section>
 
-    <!-- Right Preview Panel (7 cols) -->
+    <!-- Preview Panel (Right, 7 cols) -->
     <section class="lg:col-span-7">
       <div class="sticky top-20 overflow-x-auto pb-12">
-        <div class="flex items-center justify-between text-xs text-slate-500 mb-2 px-1">
-          <span class="flex items-center gap-1.5 font-medium">
-            <i class="fa-solid fa-file-lines text-blue-600"></i>
-            <span>Live A4 Preview (ATS Format)</span>
-            <span id="preview-industry-tag" class="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">HEALTH SCIENCE</span>
-          </span>
-          <div class="flex items-center space-x-2">
-            <button onclick="setZoom(0.85)" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] hover:bg-slate-200">85%</button>
-            <button onclick="setZoom(1.0)" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] bg-slate-200 font-bold">100%</button>
-            <button onclick="setZoom(1.15)" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] hover:bg-slate-200">115%</button>
-          </div>
-        </div>
-        
-        <div id="resume-container" class="overflow-hidden">
-          <div id="resume-preview" class="cv-canvas">
-            <!-- Render Target for ATS CV -->
-          </div>
+        <div id="resume-preview" class="cv-canvas">
+          <!-- Render Target -->
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Notification Toast -->
-  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-xl border border-slate-800 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
-    <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
-    <span id="toast-message">Notification</span>
-  </div>
-
   <script>
-    if (window.pdfjsLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // State Store Factory - Guarantees Complete Isolation
+    function createCleanState() {
+      return {
+        name: "",
+        contact: "",
+        summary: "",
+        education: [],
+        experience: [],
+        leadership: [],
+        certifications: [],
+        research: [],
+        extracurricular: [],
+        skills: { technical: "", tools: "", languages: "" },
+        references: [],
+        domain: "GENERAL",
+        accentColor: "#1e3a8a"
+      };
     }
 
-    let currentAccentColor = '#1E3A8A';
+    let cvData = createCleanState();
 
-    /* Preloaded Profile for Precious Mojisola Adefarasin */
-    const PRESETS = {
-      empty: {
-        name: "CANDIDATE FULL NAME",
-        contact: "City, State, Country  |  +234 000 000 0000  |  candidate@email.com",
-        summary: "Results-driven professional with demonstrated experience leading initiatives, optimizing operational workflows, and delivering quantified business outcomes.",
-        education: [
-          { institution: "University Name", period: "Sep 2020 – May 2024", degree: "Bachelor of Science in Field of Study", honor: "Honors or Distinctions" }
-        ],
-        experience: [
-          {
-            company: "Target Organization / Firm",
-            period: "Jan 2024 – Present",
-            title: "Professional Specialist",
-            location: "City, Country",
-            bullets: [
-              "Spearheaded critical operational initiatives, coordinating cross-functional workflows to improve efficiency by 25%.",
-              "Synthesized qualitative and quantitative operational data to inform strategic decision-making."
-            ]
-          }
-        ],
-        honors: [],
-        certifications: [],
-        extracurricular: [],
-        skills: { technical: "Core Competency 1, Core Competency 2", tools: "Tool A, Tool B", languages: "English (Fluent)" },
-        references: "References available upon request."
-      },
+    function resetCvState() {
+      cvData = createCleanState();
+      document.getElementById('raw-draft-input').value = "";
+      document.getElementById('algo-log').classList.add('hidden');
+      populateForm();
+    }
 
-      adefarasin: {
-        name: "ADEFARASIN PRECIOUS MOJISOLA",
-        contact: "Ibadan, Oyo State / Ogun State, Nigeria  |  +234 816 623 4851 / +234 819 306 0339  |  preciousadefarasin2017@gmail.com",
-        summary: "Environmental Health Scientist and Medical Microbiologist with advanced postgraduate training in Occupational Health and Safety (OHS). Experienced in clinical microbiological diagnostics, public health field interventions, healthcare facility administration, and laboratory biosafety compliance. Proven track record in laboratory quality control, accurate specimen documentation, and community disease prevention.",
-        education: [
-          {
-            institution: "University of Ibadan (College of Medicine)",
-            period: "2024 – 2026",
-            degree: "Master of Science (M.Sc.) in Safety, Health and Environmental Health Services",
-            honor: "In View"
-          },
-          {
-            institution: "Olabisi Onabanjo University (OOU)",
-            period: "2018 – 2024",
-            degree: "Bachelor of Science (B.Sc.) in Microbiology",
-            honor: "Ago-Iwoye, Ogun State"
-          },
-          {
-            institution: "Oyo State College of Health Science and Technology",
-            period: "2023 – 2024",
-            degree: "Certificate in Health Care Giving",
-            honor: "Eleyele, Ibadan"
-          }
-        ],
-        experience: [
-          {
-            company: "Ministry of Health",
-            period: "2026 – Present",
-            title: "Occupational & Environmental Health Officer (Postgraduate Internship)",
-            location: "Ibadan, Oyo State, Nigeria",
-            bullets: [
-              "Execute community public health surveillance and occupational health monitoring to evaluate environmental health risks and regulatory safety compliance across target zones.",
-              "Collaborate with multidisciplinary healthcare teams to design and implement grassroots disease prevention, sanitation, and hygiene awareness campaigns."
-            ]
-          },
-          {
-            company: "Oyo State College of Health, Science and Technology",
-            period: "2024 – 2025",
-            title: "Administrative Officer & Healthcare Giver (NYSC)",
-            location: "Eleyele, Ibadan, Oyo State",
-            bullets: [
-              "Directed administrative workflows, student documentation, and departmental correspondence, maintaining efficient record-keeping systems across faculty workstreams.",
-              "Delivered front-line patient support and healthcare assistance, coordinating clinical intake procedures and preventive care protocols."
-            ]
-          },
-          {
-            company: "Federal Medical Center (FMC)",
-            period: "2022 – 2023",
-            title: "Medical Microbiologist (Internship Training)",
-            location: "Idi-Aba, Abeokuta, Ogun State",
-            bullets: [
-              "Conducted diagnostic microbiological analyses, bacteriological specimen cultures, antibiotic sensitivity testing, and microscopy to support patient diagnostic accuracy.",
-              "Enforced strict laboratory biosafety guidelines, chemical waste disposal protocols, and contamination control standards to preserve research and clinical integrity.",
-              "Maintained and calibrated diagnostic laboratory instrumentation and prepared sterile culture media for optimal test reproducibility.",
-              "Provided technical laboratory mentorship and onboarding guidance to junior interns on standard operating procedures (SOPs) and sterile handling."
-            ]
-          }
-        ],
-        certifications: [
-          "Certificate in Health Care Giving – Oyo State College of Health Science and Technology (2024)",
-          "Certificate in Word Processing & Information Systems (2023)"
-        ],
-        extracurricular: [
-          "Member, Faculty of Public Health Student Association, University of Ibadan (2024 – Present)",
-          "Member, National Association of Microbiology Students (NAMS) (2018 – Present)"
-        ],
-        skills: {
-          technical: "Microbiological Diagnostics, Culture & Sensitivity Testing, Aseptic Techniques, Microscopy, Specimen Documentation, Clinical Auditing, Biosafety & Chemical Hygiene.",
-          tools: "Occupational Health & Safety (OHS), Environmental Risk Assessment, SOP Compliance, Healthcare Administration, Microsoft Office Suite (Word, Excel, PowerPoint).",
-          languages: "English (Fluent), Yoruba (Fluent)."
-        },
-        references: "Prof. Oladapo Okareh  |  Dept of Environmental Health Science, College of Medicine, University of Ibadan  |  +234 808 915 1341\nDr. Omolara Popoola  |  Dept of Microbiology, Olabisi Onabanjo University, Ago-Iwoye  |  +234 701 427 6649  |  omolara.popoola@oouagoiwoye.edu.ng\nProf. Catherine Olutoyin Williams  |  Dept of English Studies, Tai Solarin Federal University of Education  |  +234 816 564 8994"
-      },
+    // 1. Kerning & Spaced Lettering Normalizer
+    function normalizeSpacedLetters(text) {
+      // Collapses "D A N I E L   F A D I O R A" -> "DANIEL FADIORA"
+      // Collapses "S K I L L S" -> "SKILLS"
+      return text.replace(/\b([A-Za-z]\s+){2,}[A-Za-z]\b/g, match => {
+        return match.split(/\s{2,}/).map(token => token.replace(/\s+/g, '')).join(' ');
+      });
+    }
 
-      tech_software: {
-        name: "ALEXANDER CHUKWUEMEKA",
-        contact: "Lagos, Nigeria / Remote  |  +234 812 345 6789  |  alex.chukwu@gmail.com  |  github.com/alexchukwu",
-        summary: "Senior Full-Stack & Cloud Systems Engineer with 5+ years of experience architecting distributed microservices, low-latency APIs, and cloud infrastructures handling millions of daily requests.",
-        education: [
-          { institution: "University of Lagos", period: "Sep 2018 – Nov 2022", degree: "Bachelor of Science (B.Sc.) in Computer Science", honor: "First Class Honors (4.82/5.00)" }
-        ],
-        experience: [
-          {
-            company: "PayWave Financial Technologies",
-            period: "Jan 2023 – Present",
-            title: "Senior Backend / Cloud Engineer",
-            location: "Lagos, Nigeria",
-            bullets: [
-              "Architected and deployed high-throughput transaction processing microservices using Go and PostgreSQL, reducing payment API latency by 42% across 2.5M daily active requests.",
-              "Implemented an event-driven Kafka message streaming pipeline, eliminating transaction race conditions and elevating payment reconciliation reliability to 99.99%."
-            ]
-          }
-        ],
-        certifications: ["AWS Certified Solutions Architect – Associate (2024)", "Certified Kubernetes Administrator (CKA, 2024)"],
-        extracurricular: ["Technical Lead at Google Developer Groups (GDG) Lagos."],
-        skills: {
-          technical: "Distributed Systems, Microservices, REST & gRPC APIs, Database Indexing, Docker, Kubernetes.",
-          tools: "Go, TypeScript, Python, PostgreSQL, Redis, Apache Kafka, AWS, Terraform, Git.",
-          languages: "English (Native), Yoruba (Fluent)."
-        },
-        references: "References available upon request."
+    // 2. Multi-Column Unpacker: Inject linebreaks before common headers
+    function unpackFlattenedColumns(text) {
+      const keywords = [
+        "PROFILE", "OBJECTIVE", "PROFESSIONAL SUMMARY",
+        "EDUCATION", "EDUCATIONAL HISTORY", "ACADEMIC QUALIFICATIONS",
+        "EMPLOYMENT HISTORY", "PROFESSIONAL EXPERIENCE", "WORK EXPERIENCE", "EXPERIENCE", "WORKING STATUS",
+        "LEADERSHIP EXPERIENCE", "LEADERSHIP", 
+        "EXTRA-CURRICULAR ACTIVITIES", "EXTRACURRICULAR ACTIVITY", "EXTRACURRICULAR",
+        "CERTIFICATIONS", "CERTIFICATES", "CONVENTIONS/SUMMITS", "CONVENTIONS",
+        "PUBLICATIONS", "RESEARCH", "PROJECTS", "CONTRIBUTION TO RESEARCH",
+        "SKILLS", "TECHNICAL SKILLS", "NON-TECHNICAL SKILLS", "LANGUAGES", "HOBBIES",
+        "AREAS OF SPECIALISATION", "MEMBER OF LEARNED SOCIETIES", "REFEREES", "REFERENCES",
+        "DETAILS", "ADDRESS", "PHONE", "EMAIL", "LINKS"
+      ];
+
+      let unpacked = text;
+      keywords.forEach(kw => {
+        const regex = new RegExp(`(?<=[a-z0-9,\\.:;\\)\\]])\\s+(${kw})(:|\\s|$)`, 'gi');
+        unpacked = unpacked.replace(regex, '\n$1$2');
+      });
+      return unpacked;
+    }
+
+    // Master Parser
+    function processCleanDraft() {
+      const rawInput = document.getElementById('raw-draft-input').value;
+      if (!rawInput.trim()) return;
+
+      // Hard Wipe: Prevent state pollution from prior candidate
+      cvData = createCleanState();
+
+      // Normalize kerning and line breaks
+      const cleanStream = unpackFlattenedColumns(normalizeSpacedLetters(rawInput));
+      const lines = cleanStream.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+      // Extract Candidate Name
+      for (let i = 0; i < Math.min(lines.length, 12); i++) {
+        let line = lines[i];
+        
+        // Remove prefixes like "Name:", "i. Name:"
+        line = line.replace(/^(?:[A-Z0-9\.\-\)\*]+\s+)?(?:Name\s*:?\s*)/i, '').trim();
+
+        // Check for stopping tokens
+        let tokenMatch = line.match(/^(.*?)(?=\s+(?:DETAILS|PROFILE|ADDRESS|PHONE|EMAIL|LINKS|EDUCATION|CURRICULUM|BIO)\b)/i);
+        if (tokenMatch) {
+          line = tokenMatch[1].trim();
+        }
+
+        if (line.toLowerCase().includes("curriculum vitae") || line.toLowerCase().includes("personal data")) {
+          continue;
+        }
+
+        if (/^[a-zA-Z\s,\.\-]{3,45}$/.test(line) && line.split(/\s+/).length >= 2) {
+          cvData.name = line.replace(/,/g, '').trim().toUpperCase();
+          break;
+        }
       }
-    };
 
-    let cvData = JSON.parse(JSON.stringify(PRESETS.adefarasin));
+      if (!cvData.name) {
+        cvData.name = "CANDIDATE FULL NAME";
+      }
 
+      // Extract Contact Information
+      const fullText = lines.join(' ');
+      const emails = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+      const phones = fullText.match(/(?:\+?234|0)[789][01]\d{8}/g) || [];
+      
+      let locMatch = fullText.match(/([A-Za-z\s]+(?:State|Lagos|Ibadan|Abuja|Osogbo|Oyo|Ogun|Ghana|Kumasi))/i);
+      let location = locMatch ? locMatch[1].trim() : "Nigeria";
+
+      const contactArr = [];
+      if (location) contactArr.push(location);
+      if (phones.length) contactArr.push(phones[0]);
+      if (emails.length) contactArr.push(emails[0]);
+
+      cvData.contact = contactArr.join('  |  ');
+
+      // Section Classification
+      let currentSection = "HEADER";
+      let expBuffer = [];
+      let eduBuffer = [];
+      let leadBuffer = [];
+      let certBuffer = [];
+      let extraBuffer = [];
+      let refBuffer = [];
+      let skillBuffer = [];
+      let pubBuffer = [];
+
+      lines.forEach(line => {
+        const upper = line.toUpperCase();
+
+        if (upper.includes("EDUCATION") || upper.includes("ACADEMIC QUALIFICATION") || upper.includes("INSTITUTIONS ATTENDED")) {
+          currentSection = "EDUCATION"; return;
+        }
+        if (upper.includes("EMPLOYMENT HISTORY") || upper.includes("WORK EXPERIENCE") || upper.includes("WORKING STATUS") || upper.includes("PROFESSIONAL EXPERIENCE")) {
+          currentSection = "EXPERIENCE"; return;
+        }
+        if (upper.includes("LEADERSHIP")) {
+          currentSection = "LEADERSHIP"; return;
+        }
+        if (upper.includes("CERTIFICAT") || upper.includes("LICENS")) {
+          currentSection = "CERTIFICATIONS"; return;
+        }
+        if (upper.includes("EXTRA-CURRICULAR") || upper.includes("VOLUNTEER") || upper.includes("COMMUNITY")) {
+          currentSection = "EXTRACURRICULAR"; return;
+        }
+        if (upper.includes("SKILL") || upper.includes("COMPETENC")) {
+          currentSection = "SKILLS"; return;
+        }
+        if (upper.includes("PUBLICAT") || upper.includes("RESEARCH") || upper.includes("PROJECT")) {
+          currentSection = "RESEARCH"; return;
+        }
+        if (upper.includes("REFEREE") || upper.includes("REFERENCES")) {
+          currentSection = "REFERENCES"; return;
+        }
+
+        // Section Routing
+        if (currentSection === "EDUCATION") {
+          // Rule: Prune Secondary Education
+          if (!/secondary|high school|waec|ssce|neco|infant school|primary school/i.test(line)) {
+            eduBuffer.push(line);
+          }
+        } else if (currentSection === "EXPERIENCE") {
+          // Rule: Shunt outreaches
+          if (/outreach|volunteer\b|blood drive|pad drive|walk for/i.test(line)) {
+            extraBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
+          } else {
+            expBuffer.push(line);
+          }
+        } else if (currentSection === "LEADERSHIP") {
+          leadBuffer.push(line);
+        } else if (currentSection === "CERTIFICATIONS") {
+          certBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
+        } else if (currentSection === "EXTRACURRICULAR") {
+          extraBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
+        } else if (currentSection === "SKILLS") {
+          skillBuffer.push(line);
+        } else if (currentSection === "RESEARCH") {
+          pubBuffer.push(line.replace(/^[•\-\*]\s*/, ''));
+        } else if (currentSection === "REFERENCES") {
+          refBuffer.push(line);
+        }
+      });
+
+      // Parse Education
+      cvData.education = parseEduItems(eduBuffer);
+
+      // Parse Experience
+      cvData.experience = parseExperienceItems(expBuffer);
+
+      // Parse Leadership
+      if (leadBuffer.length > 0) {
+        cvData.leadership = parseExperienceItems(leadBuffer);
+      }
+
+      // Other Sections
+      cvData.certifications = certBuffer.filter(c => c.length > 5);
+      cvData.extracurricular = extraBuffer.filter(e => e.length > 5);
+      cvData.research = pubBuffer.filter(p => p.length > 5);
+
+      // Process Skills
+      if (skillBuffer.length > 0) {
+        cvData.skills.technical = skillBuffer.join(', ').replace(/SKILLS|NON-TECHNICAL SKILLS|TECHNICAL SKILLS/gi, '').replace(/\s{2,}/g, ' ').trim();
+      }
+
+      // Process References
+      if (refBuffer.length > 0) {
+        cvData.references = refBuffer.filter(r => r.length > 4);
+      }
+
+      // Determine Domain
+      detectDomain(fullText);
+
+      // Update Log
+      document.getElementById('algo-log').classList.remove('hidden');
+      document.getElementById('log-status').innerText = `✔ Hard-reset successful: Clean parse completed for ${cvData.name}`;
+      document.getElementById('log-domain').innerText = `✔ Classified Domain: ${cvData.domain}`;
+
+      populateForm();
+      renderPreview();
+    }
+
+    function parseEduItems(buffer) {
+      const items = [];
+      let current = null;
+
+      buffer.forEach(line => {
+        let dateMatch = line.match(/(?:19|20)\d{2}\s*(?:–|-|till|present|to)\s*(?:(?:19|20)\d{2}|present|in view|till date)/i);
+        let date = dateMatch ? dateMatch[0] : "";
+        let clean = line.replace(date, '').replace(/^[•\-\*iIvVxX0-9\.\)]\s*/, '').trim();
+
+        if (/university|college|polytechnic|institute|academy/i.test(clean)) {
+          if (current) items.push(current);
+          current = { institution: clean, period: date || "Completed", degree: "Bachelor's Degree", honor: "" };
+        } else if (current) {
+          if (/mb;bs|mbbs|b\.sc|bsc|bachelor|master|m\.sc|msc|phd|diploma|certificate/i.test(clean)) {
+            current.degree = clean;
+          } else if (/class|division|distinction|merit|honors/i.test(clean)) {
+            current.honor = clean;
+          }
+        }
+      });
+      if (current) items.push(current);
+      return items;
+    }
+
+    function parseExperienceItems(buffer) {
+      const items = [];
+      let current = null;
+
+      buffer.forEach(line => {
+        let dateMatch = line.match(/(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*)?(?:19|20)\d{2}\s*(?:–|-|till|present|to)\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*)?(?:(?:19|20)\d{2}|present|till date)/i);
+        let date = dateMatch ? dateMatch[0] : "";
+        let clean = line.replace(date, '').replace(/^[•\-\*iIvVxX0-9\.\)]\s*/, '').trim();
+
+        if (date && clean.length < 90) {
+          if (current) items.push(current);
+          current = { company: clean, period: date, title: "Officer / Specialist", location: "", bullets: [] };
+        } else if (current) {
+          if (clean.length > 20) {
+            current.bullets.push(clean);
+          } else if (!current.title || current.title === "Officer / Specialist") {
+            current.title = clean;
+          }
+        }
+      });
+      if (current) items.push(current);
+      return items;
+    }
+
+    function detectDomain(text) {
+      const t = text.toLowerCase();
+      const badge = document.getElementById('domain-badge');
+
+      if (/microbiol|specimen|bacteriol|infection|environmental health|culture\b/i.test(t)) {
+        cvData.domain = "HEALTH SCIENCES";
+        cvData.accentColor = "#0d9488"; // Teal
+        badge.innerText = "HEALTH SCIENCE / BIOMEDICAL";
+      } else if (/surgery|mb;bs|mbbs|hospital|clinical|patient|doctor|antenatal|paediatric/i.test(t)) {
+        cvData.domain = "CLINICAL MEDICINE";
+        cvData.accentColor = "#1e3a8a"; // Navy
+        badge.innerText = "CLINICAL MEDICINE";
+      } else if (/software|developer|python|javascript|cloud|aws|frontend|backend/i.test(t)) {
+        cvData.domain = "TECHNOLOGY";
+        cvData.accentColor = "#0f172a"; // Slate
+        badge.innerText = "TECHNOLOGY & PRODUCT";
+      } else if (/law|court|legal|litigation|ll\.b|arbitration|mediat/i.test(t)) {
+        cvData.domain = "LAW & ADR";
+        cvData.accentColor = "#1e3a8a"; // Navy
+        badge.innerText = "LEGAL PRACTICE";
+      } else {
+        cvData.domain = "GENERAL PROFESSIONAL";
+        cvData.accentColor = "#1e3a8a";
+        badge.innerText = "GENERAL PROFESSIONAL";
+      }
+    }
+
+    // Render Preview
     function renderPreview() {
       const container = document.getElementById('resume-preview');
       let html = '';
@@ -556,51 +516,65 @@
       // Header
       html += `
         <div style="text-align: center; margin-bottom: 12px;">
-          <h1 class="cv-header-name">${escapeHtml(cvData.name || 'CANDIDATE FULL NAME')}</h1>
-          <p class="cv-header-contact">${escapeHtml(cvData.contact || '')}</p>
+          <h1 class="cv-header-title">${cvData.name}</h1>
+          <p class="cv-header-contact">${cvData.contact}</p>
         </div>
       `;
 
-      // Professional Summary
-      if (cvData.summary && cvData.summary.trim().length > 0) {
-        html += `<div class="cv-section-title">Professional Summary</div>`;
-        html += `<div style="font-size: 9.5pt; color: #1e293b; line-height: 1.4; text-align: justify; margin-bottom: 6px;">${escapeHtml(cvData.summary)}</div>`;
-      }
-
       // Education
       if (cvData.education && cvData.education.length > 0) {
-        html += `<div class="cv-section-title">Education</div>`;
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Education</div>`;
         cvData.education.forEach(edu => {
           html += `
             <div style="margin-bottom: 6px;">
               <div class="cv-entry-row">
-                <span>${escapeHtml(edu.institution || '')}</span>
-                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${escapeHtml(edu.period || '')}</span>
+                <span>${edu.institution}</span>
+                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${edu.period}</span>
               </div>
               <div class="cv-entry-sub">
-                <span>${escapeHtml(edu.degree || '')}</span>
-                <span class="highlight">${escapeHtml(edu.honor || '')}</span>
+                <span>${edu.degree}</span>
+                <span class="highlight" style="color: ${cvData.accentColor};">${edu.honor || ''}</span>
               </div>
             </div>
           `;
         });
       }
 
-      // Professional Experience
+      // Experience
       if (cvData.experience && cvData.experience.length > 0) {
-        html += `<div class="cv-section-title">Professional Experience</div>`;
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Professional Experience</div>`;
         cvData.experience.forEach(exp => {
           html += `
             <div style="margin-bottom: 8px;">
               <div class="cv-entry-row">
-                <span>${escapeHtml(exp.company || '')}</span>
-                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${escapeHtml(exp.period || '')}</span>
+                <span>${exp.company}</span>
+                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${exp.period}</span>
               </div>
               <div class="cv-entry-sub">
-                <span>${escapeHtml(exp.title || '')}</span>
-                <span style="font-style: normal; color: #475569; font-size: 9pt;">${escapeHtml(exp.location || '')}</span>
+                <span>${exp.title}</span>
+                <span style="font-style: normal; color: #475569; font-size: 9pt;">${exp.location || ''}</span>
               </div>
-              ${(exp.bullets || []).map(b => `<div class="cv-bullet">${escapeHtml(b)}</div>`).join('')}
+              ${exp.bullets.map(b => `<div class="cv-bullet">${b}</div>`).join('')}
+            </div>
+          `;
+        });
+      }
+
+      // Leadership
+      if (cvData.leadership && cvData.leadership.length > 0) {
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Leadership Experience</div>`;
+        cvData.leadership.forEach(lead => {
+          html += `
+            <div style="margin-bottom: 8px;">
+              <div class="cv-entry-row">
+                <span>${lead.company}</span>
+                <span style="font-weight: normal; color: #475569; font-size: 9pt;">${lead.period}</span>
+              </div>
+              <div class="cv-entry-sub">
+                <span>${lead.title}</span>
+                <span style="font-style: normal; color: #475569; font-size: 9pt;">${lead.location || ''}</span>
+              </div>
+              ${lead.bullets.map(b => `<div class="cv-bullet">${b}</div>`).join('')}
             </div>
           `;
         });
@@ -608,485 +582,131 @@
 
       // Certifications
       if (cvData.certifications && cvData.certifications.length > 0) {
-        html += `<div class="cv-section-title">Certifications & Accreditations</div>`;
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Certifications</div>`;
         cvData.certifications.forEach(c => {
-          html += `<div class="cv-bullet">${escapeHtml(c)}</div>`;
+          html += `<div class="cv-bullet">${c}</div>`;
         });
       }
 
-      // Extracurricular & Affiliations
+      // Research / Publications
+      if (cvData.research && cvData.research.length > 0) {
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Research & Publications</div>`;
+        cvData.research.forEach(r => {
+          html += `<div class="cv-bullet">${r}</div>`;
+        });
+      }
+
+      // Extracurricular
       if (cvData.extracurricular && cvData.extracurricular.length > 0) {
-        html += `<div class="cv-section-title">Professional Affiliations & Extracurricular Activity</div>`;
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Extracurricular Activity</div>`;
         cvData.extracurricular.forEach(ex => {
-          html += `<div class="cv-bullet">${escapeHtml(ex)}</div>`;
+          html += `<div class="cv-bullet">${ex}</div>`;
         });
       }
 
       // Skills
-      if (cvData.skills) {
-        html += `<div class="cv-section-title">Technical Skills & Competencies</div>`;
-        if (cvData.skills.technical) {
-          html += `<div style="font-size: 9.5pt; margin-bottom: 2.5px;"><b>Core Competencies:</b> ${escapeHtml(cvData.skills.technical)}</div>`;
-        }
-        if (cvData.skills.tools) {
-          html += `<div style="font-size: 9.5pt; margin-bottom: 2.5px;"><b>Tools & Methods:</b> ${escapeHtml(cvData.skills.tools)}</div>`;
-        }
-        if (cvData.skills.languages) {
-          html += `<div style="font-size: 9.5pt; margin-bottom: 2.5px;"><b>Languages & Communication:</b> ${escapeHtml(cvData.skills.languages)}</div>`;
-        }
+      if (cvData.skills && cvData.skills.technical) {
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">Technical Skills & Competencies</div>`;
+        html += `<div style="font-size: 9.5pt; margin-bottom: 4px; line-height: 1.4;">${cvData.skills.technical}</div>`;
       }
 
       // References
-      if (cvData.references) {
-        html += `<div class="cv-section-title">References</div>`;
-        const refLines = cvData.references.split('\n').filter(r => r.trim());
-        refLines.forEach(line => {
-          html += `<div style="font-size: 9pt; color: #334155; margin-bottom: 4px;">${escapeHtml(line)}</div>`;
+      if (cvData.references && cvData.references.length > 0) {
+        html += `<div class="cv-section-title" style="color: ${cvData.accentColor};">References</div>`;
+        cvData.references.forEach(rf => {
+          html += `<div style="font-size: 9pt; color: #334155; margin-bottom: 3px;">${rf}</div>`;
         });
       }
 
       container.innerHTML = html;
-      computeAtsScore();
     }
 
-    /* Resilient Universal Parser Engine */
-    function executeJobStarAlgorithm() {
-      const rawText = document.getElementById('raw-draft-input').value;
-      if (!rawText.trim()) {
-        showToast("Please enter or upload a document to parse.", "warning");
-        return;
-      }
+    // Ingestion Handlers
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-      let prunedCount = 0;
-      let shuntedCount = 0;
-      let starEnhancedCount = 0;
+      const reader = new FileReader();
 
-      // Clean lines and unpack roman numerals if mashed together
-      let lines = [];
-      rawText.split('\n').forEach(rawLine => {
-        let trimmed = rawLine.trim();
-        if (!trimmed) return;
-
-        // Split multiple roman numerals on the same line (e.g., "i. Foo ii. Bar iii. Baz")
-        let splitParts = trimmed.split(/(?=\s+[ivx]+\.\s+)/i);
-        splitParts.forEach(p => {
-          if (p.trim()) lines.push(p.trim());
-        });
-      });
-
-      let newCv = {
-        name: "",
-        contact: "",
-        summary: "",
-        education: [],
-        experience: [],
-        certifications: [],
-        extracurricular: [],
-        skills: { technical: "", tools: "", languages: "" },
-        references: ""
-      };
-
-      // 1. EXTRACT NAME
-      // Search for explicit 'Name:' or 'Full Name:'
-      for (let l of lines) {
-        let nameMatch = l.match(/(?:(?:i\.\s+)?name\s*:\s*)([^\n;]+)/i);
-        if (nameMatch) {
-          let candidate = nameMatch[1].replace(/^[,\s]+|[,\s]+$/g, '').trim();
-          // Normalize "LASTNAME, Firstname Middlename" -> "LASTNAME FIRSTNAME MIDDLENAME"
-          candidate = candidate.replace(/,/g, '');
-          newCv.name = candidate.toUpperCase();
-          break;
-        }
-      }
-
-      // Fallback name search from top lines (skipping CURRICULUM VITAE, PERSONAL DATA, etc.)
-      if (!newCv.name) {
-        for (let l of lines.slice(0, 8)) {
-          let clean = l.replace(/^[#\*\-•ivx\.\s]+/i, '').trim();
-          if (
-            clean &&
-            clean.length < 40 &&
-            !/curriculum|vitae|resume|personal data|profile|summary|requirements/i.test(clean) &&
-            !clean.includes('@') &&
-            !/\d{5,}/.test(clean)
-          ) {
-            newCv.name = clean.toUpperCase();
-            break;
-          }
-        }
-      }
-
-      // 2. EXTRACT CONTACTS
-      let emails = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-      let phones = rawText.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3,4}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g) || [];
-      
-      let location = "";
-      // Look for explicit home address or clean state/city
-      for (let l of lines) {
-        if (/home address|postal address|address\s*:/i.test(l)) {
-          let addr = l.replace(/.*address\s*:\s*/i, '').trim();
-          // Shorten address for ATS header
-          let cityState = addr.match(/([a-zA-Z\s-]+(?:state|nigeria|lagos|ibadan|abuja|ogun))/i);
-          location = cityState ? cityState[0].trim() : addr.split(',').slice(-2).join(', ').trim();
-          break;
-        }
-      }
-      if (!location) {
-        let stateMatch = rawText.match(/([a-zA-Z\s-]+State(?:,\s*Nigeria)?)/i);
-        location = stateMatch ? stateMatch[1].trim() : "Nigeria";
-      }
-
-      let contactParts = [];
-      if (location) contactParts.push(location);
-      if (phones.length > 0) contactParts.push(Array.from(new Set(phones)).slice(0, 2).join(' / '));
-      if (emails.length > 0) contactParts.push(emails[0]);
-
-      newCv.contact = contactParts.join("  |  ");
-
-      // 3. SECTION PARTITIONING ENGINE (Accounts for lettered/numbered headers)
-      let currentSection = "general";
-      let eduInstitutions = [];
-      let eduDegrees = [];
-      let rawExperience = [];
-      let researchContributions = [];
-      let rawReferees = [];
-
-      const sectionRegex = {
-        personal: /^(?:[A-Z]\.\s*)?personal\s+data/i,
-        workingStatus: /^(?:[A-Z]\.\s*)?working\s+status/i,
-        education: /^(?:[A-Z]\.\s*)?(?:educational\s+history|institutions\s+attended|education)/i,
-        qualifications: /^(?:[A-Z]\.\s*)?(?:academic\s+qualifications?|qualifications?)/i,
-        experience: /^(?:[A-Z]\.\s*)?(?:employment\s+history|professional\s+experience|experience|work\s+experience)/i,
-        research: /^(?:[A-Z]\.\s*)?(?:contribution\s+to\s+research|research\s+interest|areas?\s+of\s+specialisation)/i,
-        societies: /^(?:[A-Z]\.\s*)?(?:member\s+of\s+learned\s+societies|affiliations?|memberships?)/i,
-        extracurricular: /^(?:[A-Z]\.\s*)?(?:extra-curricular|extracurricular)/i,
-        referees: /^(?:[A-Z]\.\s*)?(?:referees?|references?)/i
-      };
-
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
-        let clean = line.replace(/^[•\-\*ivx\.\d\)]+\s*/i, '').trim();
-
-        // Check for section header change
-        if (sectionRegex.personal.test(line)) { currentSection = "personal"; continue; }
-        if (sectionRegex.workingStatus.test(line)) { currentSection = "workingStatus"; continue; }
-        if (sectionRegex.education.test(line)) { currentSection = "education"; continue; }
-        if (sectionRegex.qualifications.test(line)) { currentSection = "qualifications"; continue; }
-        if (sectionRegex.experience.test(line)) { currentSection = "experience"; continue; }
-        if (sectionRegex.research.test(line)) { currentSection = "research"; continue; }
-        if (sectionRegex.societies.test(line)) { currentSection = "societies"; continue; }
-        if (sectionRegex.extracurricular.test(line)) { currentSection = "extracurricular"; continue; }
-        if (sectionRegex.referees.test(line)) { currentSection = "referees"; continue; }
-
-        // Skip metadata lines from Personal Data
-        if (currentSection === "personal") {
-          continue; // Strip state of origin, next of kin, DOB, marital status automatically
-        }
-
-        // Rule 1: Pruning Secondary, Primary, and Infant schools
-        if (/infant school|primary school|secondary school|tasuess|waec|wasc|ssce|neco/i.test(line)) {
-          prunedCount++;
-          continue;
-        }
-
-        if (currentSection === "education") {
-          if (/university|college|polytechnic|institute/i.test(line)) {
-            eduInstitutions.push(line);
-          }
-        } else if (currentSection === "qualifications") {
-          if (/master|bachelor|bsc|b\.sc|msc|m\.sc|degree|certificate|diploma/i.test(line)) {
-            eduDegrees.push(line);
-          }
-        } else if (currentSection === "workingStatus" || currentSection === "experience") {
-          rawExperience.push(line);
-        } else if (currentSection === "research") {
-          researchContributions.push(clean);
-        } else if (currentSection === "societies") {
-          newCv.extracurricular.push(clean);
-        } else if (currentSection === "extracurricular") {
-          // If hobby list (walking, travelling, studying), discard or transform
-          if (!/walking|travelling|studying|learning new skills|catering/i.test(clean)) {
-            newCv.extracurricular.push(clean);
-          }
-        } else if (currentSection === "referees") {
-          rawReferees.push(line);
-        }
-      }
-
-      // 4. ASSEMBLE EDUCATION (Correlate Institutions and Qualifications)
-      // Check for Masters at UI
-      let hasUI = eduInstitutions.some(e => /ibadan/i.test(e)) || rawText.includes("University of Ibadan");
-      if (hasUI) {
-        newCv.education.push({
-          institution: "University of Ibadan (College of Medicine)",
-          period: "2024 – 2026",
-          degree: "Master of Science (M.Sc.) in Safety, Health and Environmental Health Services",
-          honor: "In View"
-        });
-      }
-
-      // Check for BSc Microbiology at OOU
-      let hasOOU = eduInstitutions.some(e => /onabanjo|oou/i.test(e)) || rawText.includes("Olabisi Onabanjo");
-      if (hasOOU) {
-        newCv.education.push({
-          institution: "Olabisi Onabanjo University (OOU)",
-          period: "2018 – 2024",
-          degree: "Bachelor of Science (B.Sc.) in Microbiology",
-          honor: "Ago-Iwoye, Ogun State"
-        });
-      }
-
-      // Check for Health Care Giving
-      if (rawText.includes("Health Care Giving")) {
-        newCv.education.push({
-          institution: "Oyo State College of Health Science and Technology",
-          period: "2023 – 2024",
-          degree: "Certificate in Health Care Giving",
-          honor: "Eleyele, Ibadan"
-        });
-      }
-
-      // Fallback if generic input
-      if (newCv.education.length === 0 && eduInstitutions.length > 0) {
-        eduInstitutions.forEach(inst => {
-          newCv.education.push({
-            institution: inst.replace(/^[ivx\.\d\s\-]+/i, '').split(/[-–]/)[0].trim(),
-            period: inst.match(/\d{4}\s*[-–]\s*(?:\d{4}|present)/i)?.[0] || "2020 – 2024",
-            degree: "Undergraduate Degree",
-            honor: ""
+      if (file.name.endsWith('.docx')) {
+        reader.onload = function(e) {
+          mammoth.extractRawText({ arrayBuffer: e.target.result })
+            .then(result => {
+              document.getElementById('raw-draft-input').value = result.value;
+              processCleanDraft();
+            });
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (file.name.endsWith('.pdf')) {
+        reader.onload = function(e) {
+          const typedarray = new Uint8Array(e.target.result);
+          pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+            let maxPages = pdf.numPages;
+            let countPromises = [];
+            for (let j = 1; j <= maxPages; j++) {
+              countPromises.push(pdf.getPage(j).then(page => {
+                return page.getTextContent().then(textContent => {
+                  return textContent.items.map(s => s.str).join(' ');
+                });
+              }));
+            }
+            Promise.all(countPromises).then(texts => {
+              document.getElementById('raw-draft-input').value = texts.join('\n\n');
+              processCleanDraft();
+            });
           });
-        });
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.onload = function(e) {
+          document.getElementById('raw-draft-input').value = e.target.result;
+          processCleanDraft();
+        };
+        reader.readAsText(file);
       }
+    }
 
-      // 5. ASSEMBLE PROFESSIONAL EXPERIENCE
-      // Roles from Adefarasin's document:
-      // 1. Ministry of Health (Volunteer / Occupational Health Officer)
-      if (/ministry of health/i.test(rawText)) {
-        newCv.experience.push({
-          company: "Ministry of Health",
-          period: "2026 – Present",
-          title: "Occupational & Environmental Health Officer (Postgraduate Internship)",
-          location: "Ibadan, Oyo State, Nigeria",
-          bullets: [
-            "Execute community public health surveillance and occupational health monitoring to evaluate environmental health risks and regulatory safety compliance across target zones.",
-            "Collaborate with multidisciplinary healthcare teams to design and implement grassroots disease prevention, sanitation, and hygiene awareness campaigns."
-          ]
-        });
+    function switchMode(mode) {
+      const draftPane = document.getElementById('draft-pane');
+      const formPane = document.getElementById('form-pane');
+      const tabDraftBtn = document.getElementById('tab-draft-btn');
+      const tabFormBtn = document.getElementById('tab-form-btn');
+
+      if (mode === 'draft') {
+        draftPane.classList.remove('hidden');
+        formPane.classList.add('hidden');
+        tabDraftBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 transition";
+        tabFormBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition";
+      } else {
+        draftPane.classList.add('hidden');
+        formPane.classList.remove('hidden');
+        populateForm();
+        tabFormBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 transition";
+        tabDraftBtn.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition";
       }
-
-      // 2. Oyo State College of Health Science and Technology (NYSC)
-      if (/oyo state college of health/i.test(rawText)) {
-        newCv.experience.push({
-          company: "Oyo State College of Health, Science and Technology",
-          period: "2024 – 2025",
-          title: "Administrative Officer & Healthcare Giver (NYSC)",
-          location: "Eleyele, Ibadan, Oyo State",
-          bullets: [
-            "Directed administrative workflows, student documentation, and departmental correspondence, maintaining efficient record-keeping systems across faculty workstreams.",
-            "Delivered front-line patient support and healthcare assistance, coordinating clinical intake procedures and preventive care protocols."
-          ]
-        });
-      }
-
-      // 3. Federal Medical Center (Medical Microbiologist)
-      if (/federal medical center|fmc/i.test(rawText)) {
-        let fmcBullets = [
-          "Conducted diagnostic microbiological analyses, bacteriological specimen cultures, antibiotic sensitivity testing, and microscopy to support patient diagnostic accuracy.",
-          "Enforced strict laboratory biosafety guidelines, chemical waste disposal protocols, and contamination control standards to preserve research and clinical integrity.",
-          "Maintained and calibrated diagnostic laboratory instrumentation and prepared sterile culture media for optimal test reproducibility.",
-          "Provided technical laboratory mentorship and onboarding guidance to junior interns on standard operating procedures (SOPs) and sterile handling."
-        ];
-        starEnhancedCount += fmcBullets.length;
-
-        newCv.experience.push({
-          company: "Federal Medical Center (FMC)",
-          period: "2022 – 2023",
-          title: "Medical Microbiologist (Internship Training)",
-          location: "Idi-Aba, Abeokuta, Ogun State",
-          bullets: fmcBullets
-        });
-      }
-
-      // 6. CERTIFICATIONS
-      if (rawText.includes("Health Care Giving")) {
-        newCv.certifications.push("Certificate in Health Care Giving – Oyo State College of Health Science and Technology (2024)");
-      }
-      if (rawText.includes("Word Processing")) {
-        newCv.certifications.push("Certificate in Word Processing & Information Systems (2023)");
-      }
-
-      // 7. SUMMARY
-      if (/microbiolog/i.test(rawText) && /environmental health/i.test(rawText)) {
-        newCv.summary = "Environmental Health Scientist and Medical Microbiologist with advanced postgraduate training in Occupational Health and Safety (OHS). Experienced in clinical microbiological diagnostics, public health field interventions, healthcare facility administration, and laboratory biosafety compliance. Proven track record in laboratory quality control, accurate specimen documentation, and community disease prevention.";
-      }
-
-      // 8. SKILLS & COMPETENCIES
-      newCv.skills = {
-        technical: "Microbiological Diagnostics, Culture & Sensitivity Testing, Aseptic Techniques, Microscopy, Specimen Documentation, Clinical Auditing, Biosafety & Chemical Hygiene.",
-        tools: "Occupational Health & Safety (OHS), Environmental Risk Assessment, SOP Compliance, Healthcare Administration, Microsoft Office Suite (Word, Excel, PowerPoint).",
-        languages: "English (Fluent), Yoruba (Fluent)."
-      };
-
-      // 9. ASSEMBLE REFEREES
-      let cleanReferees = [];
-      let currentRef = null;
-
-      for (let r of rawReferees) {
-        let text = r.replace(/^[ivx\.\d\s]+/i, '').trim();
-        if (/^(?:prof|dr|mr|mrs)\b/i.test(text)) {
-          if (currentRef) cleanReferees.push(currentRef);
-          currentRef = text;
-        } else if (currentRef && text.length > 0) {
-          currentRef += "  |  " + text;
-        }
-      }
-      if (currentRef) cleanReferees.push(currentRef);
-
-      newCv.references = cleanReferees.join('\n') || "Prof. Oladapo Okareh  |  Dept of Environmental Health Science, College of Medicine, University of Ibadan  |  +234 808 915 1341\nDr. Omolara Popoola  |  Dept of Microbiology, Olabisi Onabanjo University, Ago-Iwoye  |  +234 701 427 6649\nProf. Catherine Olutoyin Williams  |  Dept of English Studies, Tai Solarin Federal University of Education  |  +234 816 564 8994";
-
-      // Commit to global state
-      cvData = newCv;
-
-      // Update UI Logs
-      const logBox = document.getElementById('algo-log');
-      logBox.classList.remove('hidden');
-      document.getElementById('log-name').innerHTML = `<i class="fa-solid fa-user-check text-indigo-400"></i> Identified Candidate: <b>${cvData.name}</b>`;
-      document.getElementById('log-domain').innerHTML = `<i class="fa-solid fa-flask text-cyan-400"></i> Domain Mapped: <b>Environmental Health & Medical Microbiology</b>`;
-      document.getElementById('log-pruned').innerHTML = `<i class="fa-solid fa-trash-can text-rose-400"></i> Filtered obsolete metadata (Place/Date of Birth, Next of Kin, Primary/Secondary schools).`;
-      document.getElementById('log-shunted').innerHTML = `<i class="fa-solid fa-network-wired text-amber-400"></i> Reconciled split academic institutions and degrees.`;
-      document.getElementById('log-star').innerHTML = `<i class="fa-solid fa-bolt text-emerald-400"></i> Formatted research contributions into active diagnostic STAR bullets.`;
-
-      populateForm();
-      renderPreview();
-      showToast("CV parsed & formatted successfully!", "success");
     }
 
     function populateForm() {
       document.getElementById('form-name').value = cvData.name || '';
       document.getElementById('form-contact').value = cvData.contact || '';
-      document.getElementById('form-summary').value = cvData.summary || '';
-      document.getElementById('form-certifications').value = (cvData.certifications || []).join('\n');
       document.getElementById('form-extracurricular').value = (cvData.extracurricular || []).join('\n');
-      document.getElementById('form-skills-tech').value = cvData.skills?.technical || '';
-      document.getElementById('form-skills-tools').value = cvData.skills?.tools || '';
-      document.getElementById('form-skills-lang').value = cvData.skills?.languages || '';
-      document.getElementById('form-references').value = cvData.references || '';
-
-      const eduContainer = document.getElementById('form-edu-container');
-      eduContainer.innerHTML = (cvData.education || []).map((edu, i) => `
-        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
-          <input type="text" value="${escapeHtml(edu.institution)}" placeholder="Institution" class="w-full font-bold bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.education[${i}].institution = this.value; renderPreview();">
-          <input type="text" value="${escapeHtml(edu.degree)}" placeholder="Degree" class="w-full bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.education[${i}].degree = this.value; renderPreview();">
-          <div class="flex gap-2">
-            <input type="text" value="${escapeHtml(edu.period)}" placeholder="Period" class="w-1/2 bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.education[${i}].period = this.value; renderPreview();">
-            <input type="text" value="${escapeHtml(edu.honor || '')}" placeholder="Honors / Location" class="w-1/2 font-bold text-blue-700 bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.education[${i}].honor = this.value; renderPreview();">
-          </div>
-        </div>
-      `).join('');
-
-      const expContainer = document.getElementById('form-exp-container');
-      expContainer.innerHTML = (cvData.experience || []).map((exp, i) => `
-        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
-          <input type="text" value="${escapeHtml(exp.company)}" placeholder="Company / Organization" class="w-full font-bold bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.experience[${i}].company = this.value; renderPreview();">
-          <div class="flex gap-2">
-            <input type="text" value="${escapeHtml(exp.title)}" placeholder="Role / Job Title" class="w-1/2 bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.experience[${i}].title = this.value; renderPreview();">
-            <input type="text" value="${escapeHtml(exp.location || '')}" placeholder="Location" class="w-1/2 bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.experience[${i}].location = this.value; renderPreview();">
-          </div>
-          <input type="text" value="${escapeHtml(exp.period)}" placeholder="Period" class="w-full bg-white border border-slate-300 p-1.5 rounded" oninput="cvData.experience[${i}].period = this.value; renderPreview();">
-          <textarea class="w-full bg-white border border-slate-300 p-1.5 rounded" rows="3" placeholder="STAR Bullets (one per line)" oninput="cvData.experience[${i}].bullets = this.value.split('\\n'); renderPreview();">${(exp.bullets || []).join('\n')}</textarea>
-        </div>
-      `).join('');
+      document.getElementById('form-skills').value = cvData.skills ? cvData.skills.technical : '';
     }
 
     function syncForm() {
       cvData.name = document.getElementById('form-name').value;
       cvData.contact = document.getElementById('form-contact').value;
-      cvData.summary = document.getElementById('form-summary').value;
-      cvData.certifications = document.getElementById('form-certifications').value.split('\n').filter(x => x.trim().length > 0);
       cvData.extracurricular = document.getElementById('form-extracurricular').value.split('\n').filter(x => x.trim().length > 0);
-      cvData.references = document.getElementById('form-references').value;
-
       if (!cvData.skills) cvData.skills = {};
-      cvData.skills.technical = document.getElementById('form-skills-tech').value;
-      cvData.skills.tools = document.getElementById('form-skills-tools').value;
-      cvData.skills.languages = document.getElementById('form-skills-lang').value;
-
+      cvData.skills.technical = document.getElementById('form-skills').value;
       renderPreview();
     }
 
-    function addEducationRow() {
-      if (!cvData.education) cvData.education = [];
-      cvData.education.push({ institution: "University Name", period: "2024 – 2026", degree: "Degree Program", honor: "" });
-      populateForm();
-      renderPreview();
-    }
-
-    function addExperienceRole() {
-      if (!cvData.experience) cvData.experience = [];
-      cvData.experience.push({ company: "Organization / Firm", period: "2024 – Present", title: "Role Title", location: "Location", bullets: ["Executed core responsibilities, improving operational efficiency."] });
-      populateForm();
-      renderPreview();
-    }
-
-    function computeAtsScore() {
-      let score = 100;
-      let checks = [];
-      const fullText = JSON.stringify(cvData).toLowerCase();
-
-      // Check 1: Secondary / Primary School Hygiene
-      if (/secondary school|waec|ssce|neco|infant school/i.test(fullText)) {
-        score -= 20;
-        checks.push({ passed: false, text: "Early school records detected (Infant/Secondary/WAEC)." });
-      } else {
-        checks.push({ passed: true, text: "Early education records cleanly pruned (Pure higher-education focus)." });
-      }
-
-      // Check 2: Personal Metadata Hygiene
-      if (/state of origin|place of birth|next of kin|marital status/i.test(fullText)) {
-        score -= 15;
-        checks.push({ passed: false, text: "Civil service metadata detected (Marital status/Next of kin)." });
-      } else {
-        checks.push({ passed: true, text: "Clean header: No discriminatory personal metadata present." });
-      }
-
-      // Check 3: Contact Line Formatting
-      if (cvData.contact && cvData.contact.includes('@')) {
-        checks.push({ passed: true, text: "Standard contact line format (Email, phone, and location mapped)." });
-      } else {
-        score -= 10;
-        checks.push({ passed: false, text: "Incomplete contact line (Ensure both email and phone are present)." });
-      }
-
-      // Check 4: Quantified Impact
-      const allBullets = (cvData.experience || []).flatMap(e => e.bullets || []);
-      const actionCount = allBullets.filter(b => /^(executed|conducted|enforced|directed|maintained|collaborated|spearheaded|architected)/i.test(b)).length;
-      if (actionCount >= Math.min(2, allBullets.length)) {
-        checks.push({ passed: true, text: `Active action verbs detected across ${actionCount} bullet points.` });
-      } else {
-        score -= 10;
-        checks.push({ passed: false, text: "Use active action verbs (e.g., 'Conducted', 'Enforced', 'Maintained')." });
-      }
-
-      const scoreBadge = document.getElementById('score-badge');
-      const scoreBar = document.getElementById('score-bar');
-      const checklistContainer = document.getElementById('audit-checklist');
-
-      if (scoreBadge && scoreBar && checklistContainer) {
-        scoreBadge.innerText = `Score: ${score}/100`;
-        scoreBar.style.width = `${score}%`;
-        checklistContainer.innerHTML = checks.map(c => `
-          <div class="flex items-center gap-2">
-            <i class="fa-solid ${c.passed ? 'fa-circle-check text-emerald-500' : 'fa-circle-exclamation text-rose-500'}"></i>
-            <span class="${c.passed ? 'text-slate-700' : 'text-rose-700 font-semibold'}">${c.text}</span>
-          </div>
-        `).join('');
-      }
-    }
-
-    /* Word (.docx) Compilation */
+    // Direct Native Word (.docx) Exporter
     async function exportDocx() {
       const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
-      const docxHexColor = currentAccentColor.replace('#', '');
+
+      const hexColor = cvData.accentColor.replace('#', '');
 
       const doc = new Document({
         styles: {
@@ -1098,121 +718,83 @@
         },
         sections: [{
           properties: {
-            page: {
-              margin: { top: 864, right: 864, bottom: 864, left: 864 }
-            }
+            page: { margin: { top: 864, right: 864, bottom: 864, left: 864 } }
           },
           children: [
             new Paragraph({
               alignment: docx.AlignmentType.CENTER,
               spacing: { after: 30 },
-              children: [
-                new TextRun({ text: cvData.name || "CANDIDATE NAME", bold: true, size: 36, color: "0F172A" })
-              ]
+              children: [new TextRun({ text: cvData.name, bold: true, size: 36, color: "0F172A" })]
             }),
             new Paragraph({
               alignment: docx.AlignmentType.CENTER,
               spacing: { after: 180 },
-              children: [
-                new TextRun({ text: cvData.contact || "", size: 19, color: "475569" })
-              ]
+              children: [new TextRun({ text: cvData.contact, size: 19, color: "475569" })]
             }),
-
-            ...(cvData.summary ? [
-              ...createDocxSection("Professional Summary", docxHexColor),
-              new Paragraph({
-                spacing: { after: 70 },
-                children: [new TextRun({ text: cvData.summary, size: 19 })]
-              })
-            ] : []),
-
-            ...createDocxSection("Education", docxHexColor),
-            ...(cvData.education || []).flatMap(e => [
-              createDocxSplitRow(e.institution, e.period, true),
-              createDocxSplitRow(e.degree, e.honor || "", false, true, docxHexColor)
-            ]),
-
-            ...createDocxSection("Professional Experience", docxHexColor),
-            ...(cvData.experience || []).flatMap(exp => [
-              createDocxSplitRow(exp.company, exp.period, true),
-              createDocxSplitRow(exp.title, exp.location || "", false),
-              ...(exp.bullets || []).map(b => new Paragraph({
+            ...buildDocxSection("Education", cvData.education.flatMap(e => [
+              createDocxRow(e.institution, e.period, true),
+              createDocxRow(e.degree, e.honor || "", false, true, hexColor)
+            ])),
+            ...buildDocxSection("Professional Experience", cvData.experience.flatMap(exp => [
+              createDocxRow(exp.company, exp.period, true),
+              createDocxRow(exp.title, exp.location || "", false),
+              ...exp.bullets.map(b => new Paragraph({
                 bullet: { level: 0 },
                 spacing: { after: 40 },
                 children: [new TextRun({ text: b, size: 19 })]
               }))
-            ]),
-
-            ...((cvData.certifications && cvData.certifications.length > 0) ? [
-              ...createDocxSection("Certifications & Accreditations", docxHexColor),
-              ...cvData.certifications.map(c => new Paragraph({
+            ])),
+            ...buildDocxSection("Leadership Experience", cvData.leadership.flatMap(ld => [
+              createDocxRow(ld.company, ld.period, true),
+              createDocxRow(ld.title, ld.location || "", false),
+              ...ld.bullets.map(b => new Paragraph({
                 bullet: { level: 0 },
                 spacing: { after: 40 },
-                children: [new TextRun({ text: c, size: 19 })]
+                children: [new TextRun({ text: b, size: 19 })]
               }))
-            ] : []),
-
-            ...((cvData.extracurricular && cvData.extracurricular.length > 0) ? [
-              ...createDocxSection("Professional Affiliations & Activities", docxHexColor),
-              ...cvData.extracurricular.map(ex => new Paragraph({
-                bullet: { level: 0 },
-                spacing: { after: 40 },
-                children: [new TextRun({ text: ex, size: 19 })]
-              }))
-            ] : []),
-
-            ...createDocxSection("Technical Skills & Competencies", docxHexColor),
-            new Paragraph({
-              spacing: { after: 35 },
-              children: [
-                new TextRun({ text: "Core Competencies: ", bold: true, size: 19 }),
-                new TextRun({ text: cvData.skills?.technical || "", size: 19 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { after: 35 },
-              children: [
-                new TextRun({ text: "Tools & Methods: ", bold: true, size: 19 }),
-                new TextRun({ text: cvData.skills?.tools || "", size: 19 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { after: 35 },
-              children: [
-                new TextRun({ text: "Languages & Communication: ", bold: true, size: 19 }),
-                new TextRun({ text: cvData.skills?.languages || "", size: 19 })
-              ]
-            }),
-
-            ...createDocxSection("References", docxHexColor),
-            ...(cvData.references ? cvData.references.split('\n').filter(r => r.trim()).map(r => new Paragraph({
-              spacing: { after: 35 },
-              children: [new TextRun({ text: r, size: 18, color: "334155" })]
-            })) : [
+            ])),
+            ...buildDocxSection("Certifications", cvData.certifications.map(c => new Paragraph({
+              bullet: { level: 0 },
+              spacing: { after: 40 },
+              children: [new TextRun({ text: c, size: 19 })]
+            }))),
+            ...buildDocxSection("Research & Publications", cvData.research.map(r => new Paragraph({
+              bullet: { level: 0 },
+              spacing: { after: 40 },
+              children: [new TextRun({ text: r, size: 19 })]
+            }))),
+            ...buildDocxSection("Extracurricular Activity", cvData.extracurricular.map(ex => new Paragraph({
+              bullet: { level: 0 },
+              spacing: { after: 40 },
+              children: [new TextRun({ text: ex, size: 19 })]
+            }))),
+            ...buildDocxSection("Technical Skills & Competencies", cvData.skills.technical ? [
               new Paragraph({
-                spacing: { after: 35 },
-                children: [new TextRun({ text: "References available upon request.", size: 19 })]
+                spacing: { after: 60 },
+                children: [new TextRun({ text: cvData.skills.technical, size: 19 })]
               })
-            ])
+            ] : []),
+            ...buildDocxSection("References", cvData.references.map(rf => new Paragraph({
+              spacing: { after: 30 },
+              children: [new TextRun({ text: rf, size: 18, color: "334155" })]
+            })))
           ]
         }]
       });
 
-      function createDocxSection(title, colorHex) {
+      function buildDocxSection(title, paragraphs) {
+        if (!paragraphs || paragraphs.length === 0) return [];
         return [
           new Paragraph({
             spacing: { before: 180, after: 70 },
-            border: {
-              bottom: { color: "E2E8F0", space: 1, value: "single", size: 6 }
-            },
-            children: [
-              new TextRun({ text: title.toUpperCase(), bold: true, size: 22, color: colorHex })
-            ]
-          })
+            border: { bottom: { color: "E2E8F0", space: 1, value: "single", size: 6 } },
+            children: [new TextRun({ text: title.toUpperCase(), bold: true, size: 22, color: hexColor })]
+          }),
+          ...paragraphs
         ];
       }
 
-      function createDocxSplitRow(left, right, isBold = false, isHighlight = false, colorHex = "1E3A8A") {
+      function createDocxRow(left, right, isBold = false, isRightColored = false, colorHex = "1E3A8A") {
         return new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           borders: {
@@ -1229,7 +811,7 @@
                 new TableCell({
                   width: { size: 75, type: WidthType.PERCENTAGE },
                   children: [new Paragraph({
-                    children: [new TextRun({ text: left || "", bold: isBold, size: 20, color: "0F172A" })]
+                    children: [new TextRun({ text: left, bold: isBold, size: 20, color: "0F172A" })]
                   })]
                 }),
                 new TableCell({
@@ -1237,10 +819,10 @@
                   children: [new Paragraph({
                     alignment: docx.AlignmentType.RIGHT,
                     children: [new TextRun({ 
-                      text: right || "", 
-                      bold: isHighlight, 
+                      text: right, 
+                      bold: isRightColored, 
                       size: 18, 
-                      color: isHighlight ? colorHex : "475569" 
+                      color: isRightColored ? colorHex : "475569" 
                     })]
                   })]
                 })
@@ -1251,197 +833,8 @@
       }
 
       Packer.toBlob(doc).then(blob => {
-        saveAs(blob, `${(cvData.name || 'Candidate').replace(/\s+/g, '_')}_JobStar_ATS_CV.docx`);
-        showToast("Word DOCX exported successfully!", "success");
+        saveAs(blob, `${cvData.name.replace(/\s+/g, '_')}_JobStar_CV.docx`);
       });
-    }
-
-    function switchMode(mode) {
-      const draftPane = document.getElementById('draft-pane');
-      const formPane = document.getElementById('form-pane');
-      const auditPane = document.getElementById('audit-pane');
-
-      const tabDraftBtn = document.getElementById('tab-draft-btn');
-      const tabFormBtn = document.getElementById('tab-form-btn');
-      const tabAuditBtn = document.getElementById('tab-audit-btn');
-
-      draftPane.classList.add('hidden');
-      formPane.classList.add('hidden');
-      auditPane.classList.add('hidden');
-
-      const defaultBtn = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center gap-1.5";
-      const activeBtn = "flex-1 py-2 rounded-lg bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5 font-bold";
-
-      tabDraftBtn.className = defaultBtn;
-      tabFormBtn.className = defaultBtn;
-      tabAuditBtn.className = defaultBtn;
-
-      if (mode === 'draft') {
-        draftPane.classList.remove('hidden');
-        tabDraftBtn.className = activeBtn;
-      } else if (mode === 'form') {
-        formPane.classList.remove('hidden');
-        populateForm();
-        tabFormBtn.className = activeBtn;
-      } else if (mode === 'audit') {
-        auditPane.classList.remove('hidden');
-        computeAtsScore();
-        tabAuditBtn.className = activeBtn;
-      }
-    }
-
-    function loadPreset(key) {
-      if (PRESETS[key]) {
-        cvData = JSON.parse(JSON.stringify(PRESETS[key]));
-        renderPreview();
-        if (!document.getElementById('form-pane').classList.contains('hidden')) {
-          populateForm();
-        }
-        showToast(`Loaded ${key.toUpperCase()} template`, "info");
-      }
-    }
-
-    async function handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const fileName = file.name.toLowerCase();
-      showToast(`Reading ${file.name}...`, "info");
-
-      if (fileName.endsWith('.docx')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          mammoth.extractRawText({ arrayBuffer: e.target.result })
-            .then(result => {
-              document.getElementById('raw-draft-input').value = result.value;
-              executeJobStarAlgorithm();
-            })
-            .catch(() => showToast("Failed to parse Word document.", "error"));
-        };
-        reader.readAsArrayBuffer(file);
-      } else if (fileName.endsWith('.pdf')) {
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          let fullExtractedText = '';
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            fullExtractedText += textContent.items.map(item => item.str).join(' ') + '\n';
-          }
-          document.getElementById('raw-draft-input').value = fullExtractedText;
-          executeJobStarAlgorithm();
-        } catch (err) {
-          showToast("Failed to parse PDF document.", "error");
-        }
-      } else {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById('raw-draft-input').value = e.target.result;
-          executeJobStarAlgorithm();
-        };
-        reader.readAsText(file);
-      }
-    }
-
-    function loadSampleDraft() {
-      document.getElementById('raw-draft-input').value = 
-`CURRICULUM VITAE
-A. PERSONAL DATA
-i. Name: ADEFARASIN, Precious Mojisola
-ii. Place of Birth: Makun-Omi, Ogun Waterside
-iii. Date of Birth: 11th April, 2001
-iv. State of Origin: Ogun State
-v. Home Address: 5, Olumayowa Street, Ijebu-Ode, Ogun State
-viii. Telephone Number: 08166234851 / 08193060339
-ix. Email address: preciousadefarasin2017@gmail.com
-x. Marital Status: Single
-
-C. EDUCATIONAL HISTORY WITH DATES
-i. University of Ibadan - 2024 - 2026
-ii. Olabisi Onabanjo University, OOU, Ago-Iwoye - 2018 - 2023
-iii. Oyo State College of Health Science and Technology - 2024 - 2025
-iv. Tai Solarin University Secondary School (TASUESS) - 2017 - 2018
-v. Floret Infant School - 2005 - 2011
-
-D. ACADEMIC QUALIFICATIONS WITH DATES
-i. Masters in Safety, Health and Environmental Health Services - In View
-ii. Bachelor of Science, BSc Microbiology - 2024
-iii. West African School Certificate - 2018
-iv. Certificate in Health Care Giving - 2024
-v. Certificate in Word Processing - 2023
-
-E. EMPLOYMENT HISTORY WITH DATES
-i. Volunteer Health Officer, Ministry of Health, Ibadan, Oyo State - 2026
-ii. Occupational Health Officer (Postgraduate Internship Programme)
-iii. Administrative Officer, Oyo State College of Health, Science and Technology, Eleyele, Ibadan. (NYSC) - 2024 - 2025
-iv. Medical Microbiologist (Internship Training), Federal Medical Center, Abeokuta - 2022 - 2023
-
-H. CONTRIBUTION TO RESEARCH
-i. Training Assistance: provide support to new interns, ensuring that they are well-equipped to perform laboratory techniques.
-ii. Safety compliance: adhere strictly to health and safety regulations to protect colleagues and the research environment.
-iii. Laboratory Maintenance: maintain a clean and organized laboratory environment to promote efficiency.
-iv. Accurate Documentation: record data and observations diligently, ensuring integrity of findings.
-
-J. REFEREES
-i. Prof Okareh, Oladapo - Dept of Environmental Health Science, University of Ibadan - Phone: +2348089151341
-ii. Dr Popoola Omolara - Dept of Microbiology, Olabisi Onabanjo University - Phone: +2347014276649`;
-      showToast("Loaded academic sample draft", "info");
-    }
-
-    function resetWorkspace() {
-      cvData = JSON.parse(JSON.stringify(PRESETS.empty));
-      document.getElementById('raw-draft-input').value = '';
-      document.getElementById('algo-log').classList.add('hidden');
-      populateForm();
-      renderPreview();
-      showToast("Workspace reset", "info");
-    }
-
-    function setZoom(scale) {
-      document.getElementById('resume-preview').style.transform = `scale(${scale})`;
-      showToast(`Zoom: ${Math.round(scale * 100)}%`, "info");
-    }
-
-    function copyFormattedText() {
-      let plain = `${cvData.name}\n${cvData.contact}\n\n`;
-      if (cvData.summary) plain += `PROFESSIONAL SUMMARY\n${cvData.summary}\n\n`;
-      plain += `EDUCATION\n`;
-      (cvData.education || []).forEach(e => {
-        plain += `${e.institution} | ${e.period}\n${e.degree} (${e.honor || ''})\n\n`;
-      });
-      plain += `PROFESSIONAL EXPERIENCE\n`;
-      (cvData.experience || []).forEach(exp => {
-        plain += `${exp.company} | ${exp.period}\n${exp.title} - ${exp.location || ''}\n`;
-        (exp.bullets || []).forEach(b => plain += `• ${b}\n`);
-        plain += `\n`;
-      });
-      const tempTextArea = document.createElement("textarea");
-      tempTextArea.value = plain;
-      document.body.appendChild(tempTextArea);
-      tempTextArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempTextArea);
-      showToast("Plain text copied to clipboard!", "success");
-    }
-
-    function showToast(message, type = "info") {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toast-message');
-      const toastIcon = document.getElementById('toast-icon');
-      toastMsg.innerText = message;
-      toastIcon.className = type === "success" ? "fa-solid fa-circle-check text-emerald-400" : (type === "warning" ? "fa-solid fa-triangle-exclamation text-amber-400" : "fa-solid fa-circle-info text-blue-400");
-      toast.classList.remove('translate-y-20', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-      setTimeout(() => {
-        toast.classList.remove('translate-y-0', 'opacity-100');
-        toast.classList.add('translate-y-20', 'opacity-0');
-      }, 3000);
-    }
-
-    function escapeHtml(string) {
-      if (!string) return '';
-      return String(string).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
     window.addEventListener('DOMContentLoaded', () => {
